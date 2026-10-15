@@ -22,7 +22,10 @@ public final class CompassCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(CommandSender s, Command cmd, String label, String[] a) {
-        if (a.length == 0) { s.sendMessage(config.message("usage")); return true; }
+        if (a.length == 0 || a[0].equalsIgnoreCase("help")) {
+            sendHelp(s);
+            return true;
+        }
         String sub = a[0].toLowerCase(Locale.ROOT);
         if (sub.equals("reload") && s.hasPermission("hardcorecompass.admin")) {
             plugin.reloadPluginConfig(); s.sendMessage(config.message("reloaded")); return true;
@@ -56,24 +59,23 @@ public final class CompassCommand implements CommandExecutor, TabCompleter {
             s.sendMessage(config.message("give-success").replace("{player}", target.getName()).replace("{item}", kind));
             return true;
         }
-        if (sub.equals("getlives") || sub.equals("info")) {
+        if (sub.equals("info")) {
             if (!s.hasPermission("hardcorecompass.admin") && a.length > 1) { s.sendMessage("§cNo permission."); return true; }
             Player target = a.length > 1 ? Bukkit.getPlayerExact(a[1]) : (s instanceof Player p ? p : null);
             if (target == null) { s.sendMessage("§cPlayer must be online (or specify an online player)."); return true; }
             String out = config.getMessage(s instanceof Player p ? p : target, "info").replace("{player}", target.getName()).replace("{lives}", String.valueOf(lives.lives(target.getUniqueId()))).replace("{deaths}", String.valueOf(lives.deaths(target.getUniqueId()))).replace("{compass}", String.valueOf(lives.hasPreservedCompass(target.getUniqueId())));
             s.sendMessage(out); return true;
         }
-        if (sub.equals("setlives") && a.length == 3 && s.hasPermission("hardcorecompass.admin")) {
-            Player target = Bukkit.getPlayerExact(a[1]);
-            try { int n = Integer.parseInt(a[2]); if (target == null || n < 0) throw new IllegalArgumentException(); lives.set(target.getUniqueId(), n); s.sendMessage(config.message("set-lives").replace("{player}", target.getName()).replace("{lives}", String.valueOf(n))); }
-            catch (Exception e) { s.sendMessage(config.message("usage")); }
-            return true;
-        }
         if (sub.equals("reset") && a.length == 2 && s.hasPermission("hardcorecompass.admin")) {
-            Player target = Bukkit.getPlayerExact(a[1]); if (target == null) { s.sendMessage("§cPlayer must be online."); return true; }
+            Player target = Bukkit.getPlayerExact(a[1]); if (target == null) { s.sendMessage(config.message("player-not-found")); return true; }
             lives.reset(target.getUniqueId()); s.sendMessage(config.message("reset").replace("{player}", target.getName())); return true;
         }
-        s.sendMessage(config.message("usage")); return true;
+        sendHelp(s);
+        return true;
+    }
+
+    private void sendHelp(CommandSender sender) {
+        sender.sendMessage(config.message("help"));
     }
 
     private void giveItem(Player target, ItemStack item) {
@@ -83,13 +85,15 @@ public final class CompassCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        if (args.length == 1) return filter(List.of("reload", "setlives", "getlives", "reset", "info", "give", "lang"), args[0]);
+        if (args.length == 1) return filter(List.of("help", "info", "lang", "give", "reset"), args[0]);
         if (args.length == 2 && args[0].equalsIgnoreCase("lang")) return filter(List.of("es", "en"), args[1]);
-        if (args.length == 2 && (args[0].equalsIgnoreCase("give") || args[0].equalsIgnoreCase("setlives") || args[0].equalsIgnoreCase("getlives") || args[0].equalsIgnoreCase("reset") || args[0].equalsIgnoreCase("info"))) return filter(Bukkit.getOnlinePlayers().stream().map(Player::getName).toList(), args[1]);
+        if (args.length == 2 && args[0].equalsIgnoreCase("give")) return filter(Bukkit.getOnlinePlayers().stream().map(Player::getName).toList(), args[1]);
         if (args.length == 3 && args[0].equalsIgnoreCase("give")) return filter(List.of("compass", "lodestone", "all"), args[2]);
-        if (args.length == 3 && args[0].equalsIgnoreCase("setlives")) return filter(List.of("0", "1", "2", "3", "5", "10"), args[2]);
+        if (args.length == 2 && args[0].equalsIgnoreCase("reset")) return filter(Bukkit.getOnlinePlayers().stream().map(Player::getName).toList(), args[1]);
         return List.of();
     }
 
-    private List<String> filter(List<String> choices, String prefix) { return choices.stream().filter(v -> v.regionMatches(true, 0, prefix, 0, prefix.length())).toList(); }
+    private List<String> filter(List<String> choices, String prefix) {
+        return choices.stream().filter(v -> v.regionMatches(true, 0, prefix, 0, prefix.length())).toList();
+    }
 }
