@@ -22,10 +22,7 @@ public final class CompassCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(CommandSender s, Command cmd, String label, String[] a) {
-        if (a.length == 0 || a[0].equalsIgnoreCase("help")) {
-            sendHelp(s);
-            return true;
-        }
+        if (a.length == 0 || a[0].equalsIgnoreCase("help")) { sendHelp(s); return true; }
         String sub = a[0].toLowerCase(Locale.ROOT);
         if (sub.equals("reload") && s.hasPermission("hardcorecompass.admin")) {
             plugin.reloadPluginConfig(); s.sendMessage(config.message("reloaded")); return true;
@@ -34,14 +31,12 @@ public final class CompassCommand implements CommandExecutor, TabCompleter {
             if (a.length == 1) {
                 if (!(s instanceof Player player)) { s.sendMessage(config.message("lang-usage")); return true; }
                 String lang = plugin.getPlayerData().getLanguage(player.getUniqueId());
-                s.sendMessage(lang == null ? config.message("lang-current-default") : config.getLocalizedMessage(lang, "lang-current"));
-                return true;
+                s.sendMessage(lang == null ? config.message("lang-current-default") : config.getLocalizedMessage(lang, "lang-current")); return true;
             }
             if (a.length == 2 && s instanceof Player player) {
                 String lang = a[1].toLowerCase(Locale.ROOT);
                 if (!lang.equals("es") && !lang.equals("en")) { s.sendMessage(config.getMessage(player, "lang-usage")); return true; }
-                plugin.getPlayerData().setLanguage(player.getUniqueId(), lang);
-                plugin.getPlayerData().save();
+                plugin.getPlayerData().setLanguage(player.getUniqueId(), lang); plugin.getPlayerData().save();
                 s.sendMessage(config.getMessage(player, "lang-set")); return true;
             }
             if (s.hasPermission("hardcorecompass.admin") && a.length == 2 && config.setLanguage(a[1])) { s.sendMessage(config.message("lang-set")); return true; }
@@ -54,10 +49,9 @@ public final class CompassCommand implements CommandExecutor, TabCompleter {
             if (target == null) { s.sendMessage(config.message("player-not-found")); return true; }
             String kind = a.length == 3 ? a[2].toLowerCase(Locale.ROOT) : "all";
             if (!kind.equals("compass") && !kind.equals("lodestone") && !kind.equals("all")) { s.sendMessage(config.message("give-usage")); return true; }
-            if (kind.equals("compass") || kind.equals("all")) giveItem(target, compasses.createCompass(null));
+            if (kind.equals("compass") || kind.equals("all")) giveItem(target, compasses.createCompass(null, target));
             if (kind.equals("lodestone") || kind.equals("all")) giveItem(target, compasses.createLodestone());
-            s.sendMessage(config.message("give-success").replace("{player}", target.getName()).replace("{item}", kind));
-            return true;
+            s.sendMessage(config.message("give-success").replace("{player}", target.getName()).replace("{item}", kind)); return true;
         }
         if (sub.equals("info")) {
             if (!s.hasPermission("hardcorecompass.admin") && a.length > 1) { s.sendMessage("§cNo permission."); return true; }
@@ -70,13 +64,10 @@ public final class CompassCommand implements CommandExecutor, TabCompleter {
             Player target = Bukkit.getPlayerExact(a[1]); if (target == null) { s.sendMessage(config.message("player-not-found")); return true; }
             lives.reset(target.getUniqueId()); s.sendMessage(config.message("reset").replace("{player}", target.getName())); return true;
         }
-        sendHelp(s);
-        return true;
+        sendHelp(s); return true;
     }
 
-    private void sendHelp(CommandSender sender) {
-        sender.sendMessage(config.message("help"));
-    }
+    private void sendHelp(CommandSender sender) { sender.sendMessage(config.message("help")); }
 
     private void giveItem(Player target, ItemStack item) {
         Map<Integer, ItemStack> overflow = target.getInventory().addItem(item);
@@ -93,7 +84,5 @@ public final class CompassCommand implements CommandExecutor, TabCompleter {
         return List.of();
     }
 
-    private List<String> filter(List<String> choices, String prefix) {
-        return choices.stream().filter(v -> v.regionMatches(true, 0, prefix, 0, prefix.length())).toList();
-    }
+    private List<String> filter(List<String> choices, String prefix) { return choices.stream().filter(v -> v.regionMatches(true, 0, prefix, 0, prefix.length())).toList(); }
 }
