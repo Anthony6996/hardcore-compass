@@ -25,7 +25,7 @@ public final class HardcoreCompassPlugin extends JavaPlugin {
         teleportManager = new TeleportManager(this, configManager);
         getServer().getPluginManager().registerEvents(new PlayerJoinListener(livesManager, compassManager, configManager), this);
         getServer().getPluginManager().registerEvents(new PlayerDeathListener(livesManager, compassManager, teleportManager, configManager), this);
-        getServer().getPluginManager().registerEvents(new PlayerRespawnListener(), this);
+        getServer().getPluginManager().registerEvents(new PlayerRespawnListener(configManager), this);
         CompassCommand command = new CompassCommand(this, livesManager, configManager);
         getCommand("hcompass").setExecutor(command);
         getCommand("hcompass").setTabCompleter(command);
