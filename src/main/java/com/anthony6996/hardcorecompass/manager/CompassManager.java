@@ -2,76 +2,28 @@ package com.anthony6996.hardcorecompass.manager;
 
 import com.anthony6996.hardcorecompass.HardcoreCompassPlugin;
 import com.anthony6996.hardcorecompass.config.ConfigManager;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
-import org.bukkit.World;
-import org.bukkit.block.Block;
-import org.bukkit.block.TileState;
-import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.Recipe;
-import org.bukkit.inventory.ShapedRecipe;
-import org.bukkit.inventory.meta.CompassMeta;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.persistence.PersistentDataContainer;
-import org.bukkit.persistence.PersistentDataType;
-import java.util.List;
-import java.util.UUID;
-
+import org.bukkit.Bukkit;import org.bukkit.Location;import org.bukkit.Material;import org.bukkit.NamespacedKey;import org.bukkit.World;import org.bukkit.block.Block;import org.bukkit.block.TileState;import org.bukkit.entity.Player;import org.bukkit.inventory.ItemStack;import org.bukkit.inventory.Recipe;import org.bukkit.inventory.ShapedRecipe;import org.bukkit.inventory.meta.CompassMeta;import org.bukkit.inventory.meta.ItemMeta;import org.bukkit.persistence.PersistentDataContainer;import org.bukkit.persistence.PersistentDataType;
+import java.util.List;import java.util.UUID;
 public final class CompassManager {
-    private final HardcoreCompassPlugin plugin;
-    private final NamespacedKey compassKey, lodestoneKey, lodestoneBlockKey;
-    private final NamespacedKey compassRecipeKey, lodestoneRecipeKey;
-    private final ConfigManager config;
-
-    public CompassManager(HardcoreCompassPlugin plugin, ConfigManager config) {
-        this.plugin=plugin; this.config=config;
-        compassKey=new NamespacedKey(plugin,"hardcore_compass");
-        lodestoneKey=new NamespacedKey(plugin,"hardcore_lodestone");
-        lodestoneBlockKey=new NamespacedKey(plugin,"hardcore_lodestone_block");
-        compassRecipeKey=new NamespacedKey(plugin,"hardcore_compass_recipe");
-        lodestoneRecipeKey=new NamespacedKey(plugin,"hardcore_lodestone_recipe");
-    }
-    public NamespacedKey lodestoneBlockKey(){return lodestoneBlockKey;}
-    public void registerRecipe(){
-        Bukkit.removeRecipe(compassRecipeKey); Bukkit.removeRecipe(lodestoneRecipeKey);
-        if(config.recipeEnabled())registerConfigured("compass",compassRecipeKey,createCompass(null,null),false);
-        if(config.lodestoneRecipeEnabled())registerConfigured("lodestone",lodestoneRecipeKey,createLodestone(null),true);
-    }
-    private void registerConfigured(String section,NamespacedKey key,ItemStack result,boolean lodestone){
-        try {
-            List<String> shape=config.recipeShape(section);
-            java.util.Set<Character> symbols=new java.util.HashSet<>();
-            if(shape.isEmpty()||shape.size()>3)throw new IllegalArgumentException("shape must contain 1-3 rows");
-            for(String row:shape){if(row==null||row.isEmpty()||row.length()>3)throw new IllegalArgumentException("each shape row must contain 1-3 characters");row.chars().filter(ch->ch!=' ').forEach(ch->symbols.add((char)ch));}
-            if(symbols.isEmpty())throw new IllegalArgumentException("shape must use at least one ingredient symbol");
-            ShapedRecipe recipe=new ShapedRecipe(key,result);recipe.shape(shape.toArray(String[]::new));
-            for(char symbol:symbols){Material material=config.recipeIngredient(section,symbol);if(material==null)throw new IllegalArgumentException("invalid/missing material for symbol "+symbol);recipe.setIngredient(symbol,material);}
-            if(!Bukkit.addRecipe(recipe))throw new IllegalStateException("Bukkit rejected recipe registration");
-        } catch(RuntimeException ex){plugin.getLogger().severe("Disabled invalid recipe.recipe."+section+": "+ex.getMessage()+". Plugin will continue enabling.");}
-    }
-    public boolean isCompassRecipe(Recipe recipe){return recipe instanceof ShapedRecipe s&&compassRecipeKey.equals(s.getKey());}
-    public boolean isLodestoneRecipe(Recipe recipe){return recipe instanceof ShapedRecipe s&&lodestoneRecipeKey.equals(s.getKey());}
-    public ItemStack createCompass(Block lodestone){return createCompass(lodestone,null);}
-    public ItemStack createCompass(Block lodestone,Player recipient){ItemStack item=new ItemStack(Material.COMPASS);CompassMeta meta=(CompassMeta)item.getItemMeta();Location target=lodestone==null?null:lodestone.getLocation();if(target!=null){meta.setLodestone(target);meta.setLodestoneTracked(true);}String lang=config.language(recipient);meta.setDisplayName(config.localized(lang,"compass-name"));meta.getPersistentDataContainer().set(compassKey,PersistentDataType.BYTE,(byte)1);updateLore(meta,lang,target,false);item.setItemMeta(meta);return item;}
-    public ItemStack createLodestone(Player recipient){ItemStack item=new ItemStack(Material.LODESTONE);ItemMeta meta=item.getItemMeta();String lang=config.language(recipient);meta.setDisplayName(config.localized(lang,"lodestone-name"));meta.setLore(List.of(config.localized(lang,"lodestone-lore")));meta.getPersistentDataContainer().set(lodestoneKey,PersistentDataType.BYTE,(byte)1);item.setItemMeta(meta);return item;}
-    public boolean isHardcoreCompass(ItemStack item){return item!=null&&item.getType()==Material.COMPASS&&item.hasItemMeta()&&item.getItemMeta().getPersistentDataContainer().has(compassKey,PersistentDataType.BYTE);}
-    public boolean isTagged(ItemStack item){return isHardcoreCompass(item);}
-    public boolean isHardcoreLodestone(ItemStack item){return item!=null&&item.getType()==Material.LODESTONE&&item.hasItemMeta()&&item.getItemMeta().getPersistentDataContainer().has(lodestoneKey,PersistentDataType.BYTE);}
-    public boolean isHardcoreLodestoneBlock(Block block){if(block==null||block.getType()!=Material.LODESTONE||!(block.getState() instanceof TileState tile))return false;return tile.getPersistentDataContainer().has(lodestoneBlockKey,PersistentDataType.BYTE);}
-    public void markPlacedLodestone(Block block,UUID owner){if(!(block.getState() instanceof TileState tile))return;PersistentDataContainer pdc=tile.getPersistentDataContainer();pdc.set(lodestoneBlockKey,PersistentDataType.BYTE,(byte)1);if(owner!=null)pdc.set(new NamespacedKey(plugin,"lodestone_owner"),PersistentDataType.STRING,owner.toString());tile.update(true,false);}
-    public boolean mayBreak(Block block,Player player){String policy=config.lodestoneBreakProtection();if(policy.equals("none"))return true;if(policy.equals("admin-only"))return player.hasPermission("hardcorecompass.admin");if(policy.equals("owner-only")){if(player.hasPermission("hardcorecompass.admin"))return true;if(!(block.getState() instanceof TileState tile))return false;String value=tile.getPersistentDataContainer().get(new NamespacedKey(plugin,"lodestone_owner"),PersistentDataType.STRING);return value!=null&&value.equals(player.getUniqueId().toString());}return true;}
-    public void bind(ItemStack item,Player player,Location target){if(!isHardcoreCompass(item)||!(item.getItemMeta() instanceof CompassMeta meta))return;String lang=config.language(player);meta.setLodestone(target);meta.setLodestoneTracked(true);updateLore(meta,lang,target,false);item.setItemMeta(meta);}
-    public void markTargetLost(World world,Location target){for(Player player:Bukkit.getOnlinePlayers()){markContents(player.getInventory().getContents(),player,world,target);markContents(player.getEnderChest().getContents(),player,world,target);}}
-    private void markContents(ItemStack[] items,Player player,World world,Location target){for(ItemStack item:items){if(!isHardcoreCompass(item)||!(item.getItemMeta() instanceof CompassMeta meta)||!meta.hasLodestone())continue;Location bound=meta.getLodestone();if(bound==null||bound.getWorld()==null||!bound.getWorld().equals(world)||bound.getBlockX()!=target.getBlockX()||bound.getBlockY()!=target.getBlockY()||bound.getBlockZ()!=target.getBlockZ())continue;meta.setLodestoneTracked(false);updateLore(meta,config.language(player),null,true);item.setItemMeta(meta);}}
-    public void refreshCompass(ItemStack item,Player player){if(!isHardcoreCompass(item)||!(item.getItemMeta() instanceof CompassMeta meta))return;Location target=meta.hasLodestone()?meta.getLodestone():null;boolean lost=target!=null&&!targetExists(target);if(lost)meta.setLodestoneTracked(false);updateLore(meta,config.language(player),lost?null:target,lost);item.setItemMeta(meta);}
-    private boolean targetExists(Location target){World w=target.getWorld();if(w==null)return false;Block block=w.getBlockAt(target);return block.getType()==Material.LODESTONE;}
-    public void refreshPlayer(Player player){for(ItemStack item:player.getInventory().getContents())refreshCompass(item,player);for(ItemStack item:player.getEnderChest().getContents())refreshCompass(item,player);}
-    public void wipeLinks(Player player){for(ItemStack item:player.getInventory().getContents())clearLink(item,player);for(ItemStack item:player.getEnderChest().getContents())clearLink(item,player);}
-    private void clearLink(ItemStack item,Player player){if(!isHardcoreCompass(item)||!(item.getItemMeta() instanceof CompassMeta meta))return;meta.setLodestone(null);meta.setLodestoneTracked(false);updateLore(meta,config.language(player),null,false);item.setItemMeta(meta);}
-    public ItemStack findTaggedCompass(Player player){for(ItemStack item:player.getInventory().getContents())if(isHardcoreCompass(item))return item.clone();return null;}
-    public void giveStarter(Player player){if(!config.starterEnabled())return;if(config.starterLodestone())player.getInventory().addItem(createLodestone(player));if(config.starterCompass())player.getInventory().addItem(createCompass(null,player));}
-    private void updateLore(CompassMeta meta,String lang,Location target,boolean lost){String key=lost?"compass-lost":target==null?"compass-unbound":"compass-bound-lore";String text=config.localized(lang,key);if(target!=null)text=text.replace("{x}",String.valueOf(target.getBlockX())).replace("{y}",String.valueOf(target.getBlockY())).replace("{z}",String.valueOf(target.getBlockZ()));else text=text.replace("{lodestone_name}",config.localized(lang,"lodestone-name"));meta.setLore(List.of(text));}
+ private final HardcoreCompassPlugin plugin;private final NamespacedKey compassKey,lodestoneKey,lodestoneBlockKey,compassRecipeKey,lodestoneRecipeKey;private final ConfigManager config;
+ public CompassManager(HardcoreCompassPlugin p,ConfigManager c){plugin=p;config=c;compassKey=new NamespacedKey(p,"hardcore_compass");lodestoneKey=new NamespacedKey(p,"hardcore_lodestone");lodestoneBlockKey=new NamespacedKey(p,"hardcore_lodestone_block");compassRecipeKey=new NamespacedKey(p,"hardcore_compass_recipe");lodestoneRecipeKey=new NamespacedKey(p,"hardcore_lodestone_recipe");}
+ public NamespacedKey lodestoneBlockKey(){return lodestoneBlockKey;}
+ public void registerRecipe(){Bukkit.removeRecipe(compassRecipeKey);Bukkit.removeRecipe(lodestoneRecipeKey);if(config.recipeEnabled())registerConfigured("compass",compassRecipeKey,createCompass(null,null));if(config.lodestoneRecipeEnabled())registerConfigured("lodestone",lodestoneRecipeKey,createLodestone(null));}
+ private void registerConfigured(String section,NamespacedKey key,ItemStack result){try{List<String> shape=config.recipeShape(section);java.util.Set<Character> symbols=new java.util.HashSet<>();if(shape.isEmpty()||shape.size()>3)throw new IllegalArgumentException("shape must contain 1-3 rows");for(String row:shape){if(row==null||row.isEmpty()||row.length()>3)throw new IllegalArgumentException("each shape row must contain 1-3 characters");row.chars().filter(ch->ch!=' ').forEach(ch->symbols.add((char)ch));}if(symbols.isEmpty())throw new IllegalArgumentException("shape must use ingredient symbols");ShapedRecipe r=new ShapedRecipe(key,result);r.shape(shape.toArray(String[]::new));for(char symbol:symbols){Material m=config.recipeIngredient(section,symbol);if(m==null)throw new IllegalArgumentException("invalid/missing material for symbol "+symbol);r.setIngredient(symbol,m);}if(!Bukkit.addRecipe(r))throw new IllegalStateException("Bukkit rejected recipe registration");}catch(RuntimeException ex){plugin.getLogger().severe("Disabled invalid recipe.recipe."+section+": "+ex.getMessage()+". Plugin will continue enabling.");}}
+ public boolean isCompassRecipe(Recipe r){return r instanceof ShapedRecipe s&&compassRecipeKey.equals(s.getKey());}public boolean isLodestoneRecipe(Recipe r){return r instanceof ShapedRecipe s&&lodestoneRecipeKey.equals(s.getKey());}
+ public ItemStack createCompass(Block b){return createCompass(b,null);}public ItemStack createCompass(Block b,Player p){ItemStack i=new ItemStack(Material.COMPASS);CompassMeta m=(CompassMeta)i.getItemMeta();Location l=b==null?null:b.getLocation();if(l!=null){m.setLodestone(l);m.setLodestoneTracked(true);}String lang=config.language(p);m.setDisplayName(config.localized(lang,"compass-name"));m.getPersistentDataContainer().set(compassKey,PersistentDataType.BYTE,(byte)1);updateLore(m,lang,l,false);i.setItemMeta(m);return i;}
+ public ItemStack createLodestone(Player p){ItemStack i=new ItemStack(Material.LODESTONE);ItemMeta m=i.getItemMeta();String lang=config.language(p);m.setDisplayName(config.localized(lang,"lodestone-name"));m.setLore(List.of(config.localized(lang,"lodestone-lore")));m.getPersistentDataContainer().set(lodestoneKey,PersistentDataType.BYTE,(byte)1);i.setItemMeta(m);return i;}
+ public boolean isHardcoreCompass(ItemStack i){return i!=null&&i.getType()==Material.COMPASS&&i.hasItemMeta()&&i.getItemMeta().getPersistentDataContainer().has(compassKey,PersistentDataType.BYTE);}public boolean isTagged(ItemStack i){return isHardcoreCompass(i);}public boolean isHardcoreLodestone(ItemStack i){return i!=null&&i.getType()==Material.LODESTONE&&i.hasItemMeta()&&i.getItemMeta().getPersistentDataContainer().has(lodestoneKey,PersistentDataType.BYTE);}
+ public boolean isHardcoreLodestoneBlock(Block b){return b!=null&&b.getType()==Material.LODESTONE&&b.getState() instanceof TileState t&&t.getPersistentDataContainer().has(lodestoneBlockKey,PersistentDataType.BYTE);}
+ public void markPlacedLodestone(Block b,UUID owner){if(!(b.getState() instanceof TileState t))return;PersistentDataContainer p=t.getPersistentDataContainer();p.set(lodestoneBlockKey,PersistentDataType.BYTE,(byte)1);if(owner!=null)p.set(new NamespacedKey(plugin,"lodestone_owner"),PersistentDataType.STRING,owner.toString());t.update(true,false);}
+ public boolean mayBreak(Block b,Player p){String mode=config.lodestoneBreakProtection();if(mode.equals("none"))return true;if(mode.equals("admin-only"))return p.hasPermission("hardcorecompass.admin");if(mode.equals("owner-only")){if(p.hasPermission("hardcorecompass.admin"))return true;if(!(b.getState() instanceof TileState t))return false;String id=t.getPersistentDataContainer().get(new NamespacedKey(plugin,"lodestone_owner"),PersistentDataType.STRING);return id!=null&&id.equals(p.getUniqueId().toString());}return true;}
+ public void bind(ItemStack i,Player p,Location l){if(!isHardcoreCompass(i)||!(i.getItemMeta() instanceof CompassMeta m))return;m.setLodestone(l);m.setLodestoneTracked(true);updateLore(m,config.language(p),l,false);i.setItemMeta(m);}
+ public void markTargetLost(World w,Location loc){for(Player p:Bukkit.getOnlinePlayers()){markContents(p.getInventory().getContents(),p,w,loc);markContents(p.getEnderChest().getContents(),p,w,loc);}}
+ private void markContents(ItemStack[] items,Player p,World w,Location target){for(ItemStack i:items){if(!isHardcoreCompass(i)||!(i.getItemMeta() instanceof CompassMeta m)||!m.hasLodestone())continue;Location l=m.getLodestone();if(l==null||l.getWorld()==null||!l.getWorld().equals(w)||l.getBlockX()!=target.getBlockX()||l.getBlockY()!=target.getBlockY()||l.getBlockZ()!=target.getBlockZ())continue;m.setLodestoneTracked(false);updateLore(m,config.language(p),null,true);i.setItemMeta(m);}}
+ public void refreshCompass(ItemStack i,Player p){if(!isHardcoreCompass(i)||!(i.getItemMeta() instanceof CompassMeta m))return;Location target=m.hasLodestone()?m.getLodestone():null;boolean lost=target!=null&&!targetExists(target);if(lost)m.setLodestoneTracked(false);updateLore(m,config.language(p),lost?null:target,lost);i.setItemMeta(m);}
+ private boolean targetExists(Location l){World w=l.getWorld();if(w==null)return false;Block b=w.getBlockAt(l);return isHardcoreLodestoneBlock(b);}
+ public void refreshPlayer(Player p){for(ItemStack i:p.getInventory().getContents())refreshCompass(i,p);for(ItemStack i:p.getEnderChest().getContents())refreshCompass(i,p);}
+ public void wipeLinks(Player p){for(ItemStack i:p.getInventory().getContents())clearLink(i,p);for(ItemStack i:p.getEnderChest().getContents())clearLink(i,p);}private void clearLink(ItemStack i,Player p){if(!isHardcoreCompass(i)||!(i.getItemMeta() instanceof CompassMeta m))return;m.setLodestone(null);m.setLodestoneTracked(false);updateLore(m,config.language(p),null,false);i.setItemMeta(m);}
+ public ItemStack findTaggedCompass(Player p){for(ItemStack i:p.getInventory().getContents())if(isHardcoreCompass(i))return i.clone();return null;}public void giveStarter(Player p){if(!config.starterEnabled())return;if(config.starterLodestone())p.getInventory().addItem(createLodestone(p));if(config.starterCompass())p.getInventory().addItem(createCompass(null,p));}
+ private void updateLore(CompassMeta m,String lang,Location target,boolean lost){String k=lost?"compass-lost":target==null?"compass-unbound":"compass-bound-lore";String text=config.localized(lang,k);if(target!=null)text=text.replace("{x}",""+target.getBlockX()).replace("{y}",""+target.getBlockY()).replace("{z}",""+target.getBlockZ());else text=text.replace("{lodestone_name}",config.localized(lang,"lodestone-name"));m.setLore(List.of(text));}
 }
