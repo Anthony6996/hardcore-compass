@@ -28,9 +28,21 @@ public final class CompassCommand implements CommandExecutor, TabCompleter {
             plugin.reloadPluginConfig(); s.sendMessage(config.message("reloaded")); return true;
         }
         if (sub.equals("lang")) {
-            if (!s.hasPermission("hardcorecompass.admin")) { s.sendMessage("§cNo permission."); return true; }
-            if (a.length != 2 || !config.setLanguage(a[1])) { s.sendMessage(config.message("lang-usage")); return true; }
-            s.sendMessage(config.message("lang-set")); return true;
+            if (a.length == 1) {
+                if (!(s instanceof Player player)) { s.sendMessage(config.message("lang-usage")); return true; }
+                String lang = plugin.getPlayerData().getLanguage(player.getUniqueId());
+                s.sendMessage(lang == null ? config.message("lang-current-default") : config.getMessage(lang, "lang-current"));
+                return true;
+            }
+            if (a.length == 2 && s instanceof Player player) {
+                String lang = a[1].toLowerCase(Locale.ROOT);
+                if (!lang.equals("es") && !lang.equals("en")) { s.sendMessage(config.getMessage(player, "lang-usage")); return true; }
+                plugin.getPlayerData().setLanguage(player.getUniqueId(), lang);
+                plugin.getPlayerData().save();
+                s.sendMessage(config.getMessage(player, "lang-set")); return true;
+            }
+            if (s.hasPermission("hardcorecompass.admin") && a.length == 2 && config.setLanguage(a[1])) { s.sendMessage(config.message("lang-set")); return true; }
+            s.sendMessage(config.message("lang-usage")); return true;
         }
         if (sub.equals("give")) {
             if (!s.hasPermission("hardcorecompass.admin")) { s.sendMessage("§cNo permission."); return true; }
@@ -48,7 +60,7 @@ public final class CompassCommand implements CommandExecutor, TabCompleter {
             if (!s.hasPermission("hardcorecompass.admin") && a.length > 1) { s.sendMessage("§cNo permission."); return true; }
             Player target = a.length > 1 ? Bukkit.getPlayerExact(a[1]) : (s instanceof Player p ? p : null);
             if (target == null) { s.sendMessage("§cPlayer must be online (or specify an online player)."); return true; }
-            String out = config.message("info").replace("{player}", target.getName()).replace("{lives}", String.valueOf(lives.lives(target.getUniqueId()))).replace("{deaths}", String.valueOf(lives.deaths(target.getUniqueId()))).replace("{compass}", String.valueOf(lives.hasPreservedCompass(target.getUniqueId())));
+            String out = config.getMessage(s instanceof Player p ? p : target, "info").replace("{player}", target.getName()).replace("{lives}", String.valueOf(lives.lives(target.getUniqueId()))).replace("{deaths}", String.valueOf(lives.deaths(target.getUniqueId()))).replace("{compass}", String.valueOf(lives.hasPreservedCompass(target.getUniqueId())));
             s.sendMessage(out); return true;
         }
         if (sub.equals("setlives") && a.length == 3 && s.hasPermission("hardcorecompass.admin")) {
