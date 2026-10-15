@@ -1,4 +1,4 @@
-# Config schema is migrated automatically by ConfigManager.
+# HardcoreCompass messages and settings. Existing installations migrate automatically.
 config-version: 5
 lives: {starting: 2, debug-info: true}
 world: world
@@ -18,30 +18,22 @@ starter: {enabled: true, lodestone: true, compass: true}
 compass: {preserve-on-first-death: true, reset-death-count-on-new-compass: false}
 lodestone: {break-protection: none, untrack-compasses-on-break: true}
 recipe:
-  compass:
-    enabled: true
-    shape: [" R ", "RCR", " R "]
-    ingredients: {R: REDSTONE, C: COMPASS}
-  lodestone:
-    enabled: true
-    shape: ["III", "ILI", "III"]
-    ingredients: {I: IRON_INGOT, L: LODESTONE}
+  compass: {enabled: true, shape: [" R ", "RCR", " R "], ingredients: {R: REDSTONE, C: COMPASS}}
+  lodestone: {enabled: true, shape: ["III", "ILI", "III"], ingredients: {I: IRON_INGOT, L: LODESTONE}}
 messages:
   language: en
+  en:
+    compass-target-broken: '&6[HardcoreCompass] &cYour compass target at {x}, {y}, {z} was broken. Rebind it at a Hardcore Lodestone.'
+    compass-lost: '&cTarget lodestone is missing. Rebind at a Hardcore Lodestone.'
+    compass-unbound: '&7Right-click a Hardcore Lodestone to bind.'
+  es:
+    compass-target-broken: '&6[HardcoreCompass] &cEl objetivo de tu brújula en {x}, {y}, {z} fue destruido. Vuelve a vincularla en una Piedra imán Hardcore.'
+    compass-lost: '&cFalta la Piedra imán objetivo. Vuelve a vincular la brújula en una Piedra imán Hardcore.'
+    compass-unbound: '&7Haz clic derecho en una Piedra imán Hardcore para vincularla.'
   no-permission: '&cNo permission.'
-  preserve-usage: '&eUsage: /hcompass setpreserve <true|false>'
-  preserve-set: '&aFirst-death compass preservation set to {value}.'
-  reset-usage: '&eUsage: /hcompass reset <player> deaths'
-  reset-deaths: '&aDeath count reset for {player}.'
-  wipelinks-usage: '&eUsage: /hcompass wipelinks <player>'
-  wipelinks-done: '&aCompass links cleared for {player}.'
-  lodestone-break-denied: '&cYou cannot break this Hardcore Lodestone.'
   compass-name: '&6Hardcore Compass'
   compass-bound-lore: '&7Bound to {x}, {y}, {z}'
-  compass-unbound: '&7Right-click a Hardcore Lodestone to bind.'
-  compass-lost: '&cTarget lodestone is missing. Rebind at a Hardcore Lodestone.'
   lodestone-name: '&6Hardcore Lodestone'
-  lodestone-lore: '&7A lodestone for Hardcore Compass navigation.'
-  compass-name-lodestone: '&6Hardcore Lodestone'
+  lodestone-lore: '&7A lodestone for Hardcore Compass navigation'
   en: {no-permission: '&cNo permission.'}
   es: {no-permission: '&cNo tienes permiso.'}
