@@ -31,7 +31,7 @@ public final class CompassCommand implements CommandExecutor, TabCompleter {
             if (a.length == 1) {
                 if (!(s instanceof Player player)) { s.sendMessage(config.message("lang-usage")); return true; }
                 String lang = plugin.getPlayerData().getLanguage(player.getUniqueId());
-                s.sendMessage(lang == null ? config.message("lang-current-default") : config.getMessage(lang, "lang-current"));
+                s.sendMessage(lang == null ? config.message("lang-current-default") : config.getLocalizedMessage(lang, "lang-current"));
                 return true;
             }
             if (a.length == 2 && s instanceof Player player) {
