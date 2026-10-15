@@ -16,11 +16,12 @@ public final class HardcoreCompassPlugin extends JavaPlugin {
     private LivesManager livesManager;
     private CompassManager compassManager;
     private TeleportManager teleportManager;
+    private PlayerData playerData;
     @Override public void onEnable() {
         saveDefaultConfig();
         configManager = new ConfigManager(this);
-        PlayerData storage = new PlayerData(this);
-        livesManager = new LivesManager(configManager, storage);
+        playerData = new PlayerData(this);
+        livesManager = new LivesManager(configManager, playerData);
         compassManager = new CompassManager(this, configManager);
         teleportManager = new TeleportManager(this, configManager);
         getServer().getPluginManager().registerEvents(new PlayerJoinListener(livesManager, compassManager, configManager), this);
@@ -32,5 +33,6 @@ public final class HardcoreCompassPlugin extends JavaPlugin {
         getLogger().info("HardcoreCompass enabled for Paper/Purpur 1.21.1.");
     }
     @Override public void onDisable() { if (livesManager != null) livesManager.save(); }
+    public PlayerData getPlayerData() { return playerData; }
     public void reloadPluginConfig() { reloadConfig(); configManager.reload(); }
 }
