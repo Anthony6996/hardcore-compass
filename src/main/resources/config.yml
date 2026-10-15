@@ -1,8 +1,6 @@
-# HardcoreCompass defaults for Paper/Purpur 1.21.1, Java 21
-config-version: 4
-lives:
-  starting: 2
-  debug-info: true
+# Config schema is migrated automatically by ConfigManager.
+config-version: 5
+lives: {starting: 2, debug-info: true}
 world: world
 teleport:
   min-radius: 10000
@@ -13,73 +11,37 @@ teleport:
   avoid-lava: true
   avoid-void: true
   search-radius: 8
-penalties:
-  wipe-inventory: true
-  clear-ender-chest: true
-  clear-xp: true
-  clear-bed-spawn: true
-  enable-rtp: true
-starter:
-  enabled: true
-  lodestone: true
-  compass: true
+  spawn-min-distance: 750
+  spawn-history-limit: 10
+penalties: {wipe-inventory: true, clear-ender-chest: true, clear-xp: true, clear-bed-spawn: true, enable-rtp: true}
+starter: {enabled: true, lodestone: true, compass: true}
+compass: {preserve-on-first-death: true, reset-death-count-on-new-compass: false}
+lodestone: {break-protection: none, untrack-compasses-on-break: true}
 recipe:
-  enabled: true
-  shape: [" R ", "RCR", " R "]
-  ingredients: {R: REDSTONE, C: COMPASS}
+  compass:
+    enabled: true
+    shape: [" R ", "RCR", " R "]
+    ingredients: {R: REDSTONE, C: COMPASS}
+  lodestone:
+    enabled: true
+    shape: ["III", "ILI", "III"]
+    ingredients: {I: IRON_INGOT, L: LODESTONE}
 messages:
   language: en
-  rtp-no-unique: '&cCould not find an unused safe respawn location. No teleport was made.'
-  radius-usage: '&eUsage: /hcompass radius <min> <max>'
-  radius-set: '&aRTP radius updated: {min} to {max} blocks.'
   no-permission: '&cNo permission.'
-  help-admin: |-
-    &6HardcoreCompass admin commands:
-    &e/hcompass give <player> [compass|lodestone|all] &7Give tagged gear.
-    &e/hcompass reset <player> &7Reset lives and death history.
-    &e/hcompass radius <min> <max> &7Set random respawn radius in blocks.
-    &e/hcompass reload &7Reload configuration and recipe.
-    &e/hcompass lang <en|es> &7Set your language.
-    &e/hcompass help &7Show this menu.
-  help-player: |-
-    &6HardcoreCompass commands:
-    &e/hcompass lang <en|es> &7Change your language.
-    &e/hcompass help &7Show this menu.
-  en:
-    radius-usage: '&eUsage: /hcompass radius <min> <max>'
-    radius-set: '&aRTP radius updated: {min} to {max} blocks.'
-    rtp-no-unique: '&cCould not find an unused safe respawn location. No teleport was made.'
-    no-permission: '&cNo permission.'
-    help-admin: |-
-      &6HardcoreCompass admin commands:
-      &e/hcompass give <player> [compass|lodestone|all] &7Give tagged gear.
-      &e/hcompass reset <player> &7Reset lives and death history.
-      &e/hcompass radius <min> <max> &7Set random respawn radius in blocks.
-      &e/hcompass reload &7Reload configuration and recipe.
-      &e/hcompass lang <en|es> &7Set your language.
-      &e/hcompass help &7Show this menu.
-    help-player: |-
-      &6HardcoreCompass commands:
-      &e/hcompass lang <en|es> &7Change your language.
-      &e/hcompass help &7Show this menu.
-  es:
-    radius-usage: '&eUso: /hcompass radius <min> <max>'
-    radius-set: '&aRadio RTP actualizado: de {min} a {max} bloques.'
-    rtp-no-unique: '&cNo se encontró un lugar seguro y no utilizado. No se realizó el teletransporte.'
-    no-permission: '&cNo tienes permiso.'
-    help-admin: |-
-      &6Comandos de administración de HardcoreCompass:
-      &e/hcompass give <jugador> [compass|lodestone|all] &7Entrega equipo etiquetado.
-      &e/hcompass reset <jugador> &7Reinicia vidas e historial.
-      &e/hcompass radius <mín> <máx> &7Define el radio aleatorio de reaparición.
-      &e/hcompass reload &7Recarga configuración y receta.
-      &e/hcompass lang <en|es> &7Cambia tu idioma.
-      &e/hcompass help &7Muestra este menú.
-    help-player: |-
-      &6Comandos de HardcoreCompass:
-      &e/hcompass lang <en|es> &7Cambia tu idioma.
-      &e/hcompass help &7Muestra este menú.
-    radius-set: '&aRadio RTP actualizado: de {min} a {max} bloques.'
-    radius-usage: '&eUso: /hcompass radius <mín> <máx>'
-    rtp-no-unique: '&cNo se encontró un lugar seguro y no utilizado.'
-    no-permission: '&cNo tienes permiso.'
+  preserve-usage: '&eUsage: /hcompass setpreserve <true|false>'
+  preserve-set: '&aFirst-death compass preservation set to {value}.'
+  reset-usage: '&eUsage: /hcompass reset <player> deaths'
+  reset-deaths: '&aDeath count reset for {player}.'
+  wipelinks-usage: '&eUsage: /hcompass wipelinks <player>'
+  wipelinks-done: '&aCompass links cleared for {player}.'
+  lodestone-break-denied: '&cYou cannot break this Hardcore Lodestone.'
+  compass-name: '&6Hardcore Compass'
+  compass-bound-lore: '&7Bound to {x}, {y}, {z}'
+  compass-unbound: '&7Right-click a Hardcore Lodestone to bind.'
+  compass-lost: '&cTarget lodestone is missing. Rebind at a Hardcore Lodestone.'
+  lodestone-name: '&6Hardcore Lodestone'
+  lodestone-lore: '&7A lodestone for Hardcore Compass navigation.'
+  compass-name-lodestone: '&6Hardcore Lodestone'
+  en: {no-permission: '&cNo permission.'}
+  es: {no-permission: '&cNo tienes permiso.'}
