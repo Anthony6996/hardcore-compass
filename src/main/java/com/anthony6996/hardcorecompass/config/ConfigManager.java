@@ -40,9 +40,9 @@ public final class ConfigManager {
     public boolean starterEnabled() { return c().getBoolean("starter.enabled",true); }
     public boolean starterLodestone() { return c().getBoolean("starter.lodestone",true); }
     public boolean starterCompass() { return c().getBoolean("starter.compass",true); }
-    public String message(String key) { return getMessage(null, key); }
-    public String getMessage(Player player, String key) { return getMessage(player == null ? null : plugin.getPlayerData().getLanguage(player.getUniqueId()), key); }
-    public String getMessage(String language, String key) {
+    public String message(String key) { return getLocalizedMessage(null, key); }
+    public String getMessage(Player player, String key) { return getLocalizedMessage(player == null ? null : plugin.getPlayerData().getLanguage(player.getUniqueId()), key); }
+    public String getLocalizedMessage(String language, String key) {
         String chosen = language == null || language.isBlank() ? c().getString("messages.language","en") : language;
         if (chosen == null) chosen = "en";
         chosen = chosen.toLowerCase(Locale.ROOT);
