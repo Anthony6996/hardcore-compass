@@ -5,6 +5,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -17,6 +18,15 @@ public final class ConfigManager {
         if (values.getInt("teleport.min-radius",10000)<0) values.set("teleport.min-radius",0);
         if (values.getInt("teleport.max-radius",30000)<values.getInt("teleport.min-radius",10000)) values.set("teleport.max-radius",values.getInt("teleport.min-radius",10000));
         String language=values.getString("messages.language","en"); if(language==null||(!language.equalsIgnoreCase("en")&&!language.equalsIgnoreCase("es"))) values.set("messages.language","en");
+        if (!values.contains("recipe.enabled")) values.set("recipe.enabled",true);
+        if (!values.isString("recipe.shape") && !values.isList("recipe.shape")) values.set("recipe.shape",List.of(" R ","RCR"," R "));
+        if (!values.isConfigurationSection("recipe.ingredients")) values.createSection("recipe.ingredients");
+        if (!values.contains("recipe.ingredients.R")) values.set("recipe.ingredients.R","REDSTONE");
+        if (!values.contains("recipe.ingredients.C")) values.set("recipe.ingredients.C","COMPASS");
+        List<String> shape=values.getStringList("recipe.shape");
+        if(shape.isEmpty()) { shape=List.of(" R ","RCR"," R "); values.set("recipe.shape",shape); }
+        java.util.Set<Character> used=new java.util.HashSet<>(); shape.forEach(row->row.chars().filter(ch->ch!=' ').forEach(ch->used.add((char)ch)));
+        for(char symbol:used) { String name=values.getString("recipe.ingredients."+symbol); if(name==null||Material.matchMaterial(name)==null) { plugin.getLogger().warning("Invalid/missing recipe material for symbol "+symbol+"; using defaults."); values.set("recipe.ingredients."+symbol, symbol=='C'?"COMPASS":"REDSTONE"); } }
     }
     public boolean setLanguage(String language) { if(language==null||(!language.equalsIgnoreCase("en")&&!language.equalsIgnoreCase("es")))return false;values.set("messages.language",language.toLowerCase(Locale.ROOT));plugin.saveConfig();return true; }
     private FileConfiguration c() { return values; }
@@ -39,14 +49,14 @@ public final class ConfigManager {
     public boolean starterEnabled(){return c().getBoolean("starter.enabled",true);}
     public boolean starterLodestone(){return c().getBoolean("starter.lodestone",true);}
     public boolean starterCompass(){return c().getBoolean("starter.compass",true);}
+    public boolean recipeEnabled(){return c().getBoolean("recipe.enabled",true);}
+    public List<String> recipeShape(){return new ArrayList<>(c().getStringList("recipe.shape"));}
+    public List<String> recipeSymbols(){return c().getConfigurationSection("recipe.ingredients")==null?List.of():List.copyOf(c().getConfigurationSection("recipe.ingredients").getKeys(false));}
+    public Material recipeIngredient(char symbol){String raw=c().getString("recipe.ingredients."+symbol);return raw==null?null:Material.matchMaterial(raw);}
     public String defaultLanguage(){return validLanguage(c().getString("messages.language","en"));}
     public String language(Player player){if(player==null)return defaultLanguage();String lang=plugin.getPlayerData().getLanguage(player.getUniqueId());return validLanguage(lang==null?defaultLanguage():lang);}
     private String validLanguage(String language){return language==null||(!language.equalsIgnoreCase("en")&&!language.equalsIgnoreCase("es"))?"en":language.toLowerCase(Locale.ROOT);}
     public String getMessage(Player player,String key){return localized(language(player),key);}
     public String message(String key){return localized(defaultLanguage(),key);}
     public String localized(String lang,String key){String text=c().getString("messages."+lang+"."+key);if(text==null)text=c().getString("messages.en."+key);if(text==null)text=c().getString("messages."+key,"");return ChatColor.translateAlternateColorCodes('&',text);}
-    public List<String> recipeShape(){return c().getStringList("recipe.shape");}
-    public boolean recipeEnabled(){return c().getBoolean("recipe.enabled",true);}
-    public List<String> recipeSymbols(){return c().getConfigurationSection("recipe.ingredients")==null?List.of():List.copyOf(c().getConfigurationSection("recipe.ingredients").getKeys(false));}
-    public String recipeIngredient(String symbol){return c().getString("recipe.ingredients."+symbol);}
 }
