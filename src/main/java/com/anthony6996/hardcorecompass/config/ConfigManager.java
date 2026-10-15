@@ -15,6 +15,12 @@ public final class ConfigManager {
         if (values.getInt("teleport.max-radius",30000)<values.getInt("teleport.min-radius",10000)) { plugin.getLogger().warning("teleport.max-radius is less than min-radius; correcting it."); values.set("teleport.max-radius",values.getInt("teleport.min-radius",10000)); }
         String language=values.getString("messages.language","en"); if(language==null||(!language.equalsIgnoreCase("en")&&!language.equalsIgnoreCase("es"))) { plugin.getLogger().warning("Unknown message language; using en."); values.set("messages.language","en"); }
     }
+    public boolean setLanguage(String language) {
+        if (language == null || (!language.equalsIgnoreCase("en") && !language.equalsIgnoreCase("es"))) return false;
+        values.set("messages.language", language.toLowerCase(Locale.ROOT));
+        plugin.saveConfig();
+        return true;
+    }
     private FileConfiguration c() { return values; }
     public int startingLives() { return Math.max(1,c().getInt("lives.starting",2)); }
     public boolean debugInfo() { return c().getBoolean("lives.debug-info",true); }
