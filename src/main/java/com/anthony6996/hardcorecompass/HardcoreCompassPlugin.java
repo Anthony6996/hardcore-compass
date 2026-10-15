@@ -9,7 +9,6 @@ import com.anthony6996.hardcorecompass.manager.CompassManager;
 import com.anthony6996.hardcorecompass.manager.LivesManager;
 import com.anthony6996.hardcorecompass.manager.TeleportManager;
 import com.anthony6996.hardcorecompass.storage.PlayerData;
-import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class HardcoreCompassPlugin extends JavaPlugin {
@@ -26,11 +25,10 @@ public final class HardcoreCompassPlugin extends JavaPlugin {
         teleportManager = new TeleportManager(this, configManager);
         getServer().getPluginManager().registerEvents(new PlayerJoinListener(livesManager, compassManager, configManager), this);
         getServer().getPluginManager().registerEvents(new PlayerDeathListener(livesManager, compassManager, teleportManager, configManager), this);
-        getServer().getPluginManager().registerEvents(new PlayerRespawnListener(configManager), this);
+        getServer().getPluginManager().registerEvents(new PlayerRespawnListener(), this);
         CompassCommand command = new CompassCommand(this, livesManager, configManager);
         getCommand("hcompass").setExecutor(command);
         getCommand("hcompass").setTabCompleter(command);
-        if (configManager.debugInfo()) Bukkit.getOnlinePlayers().forEach(p -> p.setReducedDebugInfo(true));
         getLogger().info("HardcoreCompass enabled for Paper/Purpur 1.21.1.");
     }
     @Override public void onDisable() { if (livesManager != null) livesManager.save(); }
