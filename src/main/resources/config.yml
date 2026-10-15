@@ -1,0 +1,40 @@
+# HardcoreCompass defaults for Paper/Purpur 1.21.1, Java 21
+lives:
+  starting: 2
+  debug-info: true
+world: world
+teleport:
+  min-radius: 10000
+  max-radius: 30000
+  attempts: 80
+  min-y: -64
+  max-y: 320
+  border-margin: 16
+  safety-radius: 8
+  avoid-water: true
+  avoid-lava: true
+  avoid-void: true
+  search-radius: 8
+starter:
+  enabled: true
+  lodestone: true
+  compass: true
+messages:
+  language: en # en or es
+  first-join: '&aWelcome! You have {lives} lives. Your compass is ready.'
+  death-one: '&eThat was close! {lives} life left. You have been moved somewhere new.'
+  death-final: '&cNo lives remain. Your inventory was cleared and you have been relocated.'
+  no-world: '&cConfigured world not found; safe relocation was skipped.'
+  lives-self: '&eLives remaining: {lives}'
+  lives-other: '&e{player} has {lives} lives.'
+  set-lives: '&aSet {player} to {lives} lives.'
+  reloaded: '&aHardcoreCompass configuration reloaded.'
+  usage: '&e/hcompass lives [player] | setlives <player> <amount> | reload'
+  en:
+    first-join: '&aWelcome! You have {lives} lives. Your compass is ready.'
+    death-one: '&eThat was close! {lives} life left. You have been moved somewhere new.'
+    death-final: '&cNo lives remain. Your inventory was cleared and you have been relocated.'
+  es:
+    first-join: '&a¡Bienvenido! Tienes {lives} vidas. Tu brújula está lista.'
+    death-one: '&e¡Por poco! Te queda {lives} vida. Te hemos llevado a otro lugar.'
+    death-final: '&cNo te quedan vidas. Tu inventario se limpió y te hemos trasladado.'

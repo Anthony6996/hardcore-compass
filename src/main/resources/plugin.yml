@@ -1,0 +1,17 @@
+name: HardcoreCompass
+version: '${project.version}'
+main: com.anthony6996.hardcorecompass.HardcoreCompassPlugin
+api-version: '1.21'
+author: Anthony6996
+description: UUID lives, lodestone compasses, and safe random respawns.
+commands:
+  hcompass:
+    description: HardcoreCompass administration and player information
+    usage: /hcompass <lives|setlives|reload>
+permissions:
+  hardcorecompass.admin:
+    description: Manage HardcoreCompass lives and configuration
+    default: op
+  hardcorecompass.lives:
+    description: View your own remaining lives
+    default: true
