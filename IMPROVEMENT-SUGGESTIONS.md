@@ -1,48 +1,150 @@
-# Improvement suggestions — updated
+# Improvement suggestions — custom items, lodestones, and admin policy
 
-## Compass identity
+## Custom item identity
 
-- Track the starter/base compass by a persistent identifier, such as Persistent Data Container key, UUID, or custom model data, rather than preserving the first lodestone-bound compass found.
-- Prevent players from creating an unlimited supply of preserveable compasses by binding ordinary compasses to lodestones.
-- Add configurable compass name, lore, and custom model data.
-- Add messages when the compass is preserved on the first death and lost thereafter.
+Use separate PersistentDataContainer keys for Hardcore Compasses and Hardcore Lodestones:
 
-## Zero-life handling
+```java
+hardcore_compass
+hardcore_lodestone
+```
 
-- Add a configurable outcome at zero lives: spectator mode, temporary ban, permanent elimination, custom command, or current respawn-only behaviour.
-- Ensure the chosen zero-life outcome is clearly documented and tested.
+This prevents ambiguity between item types and makes validation explicit. The current single `hardcore_compass` key should be split into type-specific keys, while retaining a migration check for existing items where practical.
 
-## Relocation
+Recommended item metadata:
 
-- Consider moving the bounded safe-location scan off the main thread or limiting its per-tick work for busy servers.
-- Add exclusion zones for claims, protected regions, other players, and dangerous generated structures.
-- Log the selected destination and fallback reason at debug level to simplify support.
-- Consider separating horizontal target selection from vertical safe-surface search more explicitly, and expose a maximum search area or timeout.
-- Add an optional minimum distance from world spawn, other players, or prior death locations.
+- Hardcore Compass: custom name, bound/unbound lore, plugin compass PDC tag.
+- Hardcore Lodestone: custom name, description lore, plugin lodestone PDC tag.
+- Placed Hardcore Lodestone: block `TileState` PDC marker plus optional owner UUID.
 
-## Death penalties
+Vanilla compasses and vanilla lodestones should never be accepted by binding, preservation, or recipe-result logic.
 
-- Keep the individual penalty toggles, and consider adding an option to keep specific items, such as the base compass, even when inventory wiping is enabled.
-- Add an optional death-chest or grave system so wiped inventory is recoverable for a configurable period.
-- Consider a configurable delay before relocation, or relocation on respawn, if testing reveals conflicts with vanilla respawn.
+## Crafting
 
-## Data and reliability
+Add independent configurable recipes for both custom items:
 
-- Use atomic file writes for `players.yml` and save on server disable.
-- Add optional SQLite/MySQL storage for larger servers or future multi-server setups.
-- Validate configuration at startup: invalid world, minimum radius greater than maximum radius, non-positive attempts, and invalid message keys.
-- Add config versioning and safe migration.
+```yaml
+recipe:
+  compass:
+    enabled: true
+    shape:
+      - " R "
+      - "RCR"
+      - " R "
+    ingredients:
+      R: REDSTONE
+      C: COMPASS
+  lodestone:
+    enabled: true
+    shape:
+      - "III"
+      - "ILI"
+      - "III"
+    ingredients:
+      I: IRON_INGOT
+      L: LODESTONE
+```
 
-## Commands and permissions
+Implementation notes:
 
-- Add `/hcompass reset <player>` to reset lives, deaths, and compass-preservation state.
-- Add `/hcompass info <player>` showing lives, deaths, and whether the first-death compass has already been used.
-- Add tab completion for subcommands, player names, and numeric arguments.
-- Ensure all admin commands work from console.
+- Use separate `NamespacedKey` values for each recipe.
+- Register the compass recipe with a tagged compass result.
+- Register the lodestone recipe with a tagged lodestone result.
+- In `PrepareItemCraftEvent`, replace the preview result with the correctly tagged and localised item.
+- Validate shape dimensions, used symbols, and material mappings before calling `Bukkit.addRecipe`.
+- On invalid configuration, log a clear error and skip registration rather than throwing an exception during plugin enable.
+- Re-register both recipes on `/hcompass reload`.
 
-## Developer experience
+The crafting preview should display the custom item name and lore so players can distinguish Hardcore items from vanilla items before taking them.
 
-- Add unit tests for first-death compass preservation, second-death loss, death counting, penalty toggles, and RTP fallback.
-- Add a GitHub Actions workflow to build with JDK 21 and Maven.
-- Publish built jars in GitHub Releases.
-- Add a changelog and semantic versioning.
+## Lodestone ownership and sharing
+
+Do not make a Hardcore Lodestone exclusive to one compass or one player. Multiple Hardcore Compasses should be able to bind to the same lodestone.
+
+The compass’s own `CompassMeta` target is sufficient for shared use. Breaking a lodestone should untrack every compass whose stored world and block coordinates match that lodestone.
+
+Do not allow one player’s binding action to overwrite another player’s compass target. Binding affects only the compass in the binder’s main hand.
+
+## Lodestone break protection
+
+Add a configurable protection mode:
+
+```yaml
+lodestone:
+  break-protection: none # none | owner-only | admin-only
+  untrack-compasses-on-break: true
+```
+
+- `none`: anyone can break the lodestone; recommended hardcore default.
+- `owner-only`: only the placer or an admin can break it.
+- `admin-only`: only administrators can break it.
+
+Store the placer UUID in the lodestone block’s `TileState` PersistentDataContainer when the lodestone is placed. Check that UUID in `BlockBreakEvent` when `owner-only` is enabled.
+
+When a protected break is cancelled, send a localised message and optionally play a denial sound.
+
+## Offline compass handling
+
+The current implementation updates only online players’ inventories and ender chests when a lodestone breaks. Offline players’ compasses cannot be updated immediately.
+
+Recommended approach:
+
+1. Maintain a persistent registry of known Hardcore Lodestone locations and their broken state.
+2. On player join, inspect tagged compasses in that player’s inventory and ender chest.
+3. If a compass points to a registered broken lodestone, set `lodestoneTracked(false)` and refresh lore in that player’s language.
+4. Remove obsolete registry entries after a configurable period or when no compass references them.
+
+This avoids storing every player’s compass state centrally while still correcting offline items on their next session.
+
+## Death count and compass preservation
+
+A newly crafted Hardcore Compass must not reset the player’s death count. Death count should remain a per-player progression value.
+
+Recommended config:
+
+```yaml
+compass:
+  preserve-on-first-death: true
+  reset-death-count-on-new-compass: false
+```
+
+Recommended commands:
+
+```text
+/hcompass setpreserve <true|false>
+/hcompass setresetoncraft <true|false>
+/hcompass reset <player> lives|deaths|compass|rtp|all
+```
+
+- `preserve-on-first-death` controls whether the first death preserves a tagged Hardcore Compass.
+- `reset-death-count-on-new-compass` should default to `false` to prevent players regaining first-death protection by crafting another compass.
+- `reset` should be granular so admins can reset lives without deleting language preferences or RTP history.
+
+## RTP history
+
+Add a cap or pruning policy for stored previous spawn locations:
+
+```yaml
+teleport:
+  spawn-history-limit: 10
+```
+
+Keep only the most recent entries per player. This prevents `players.yml` from growing indefinitely on long-lived servers while still allowing meaningful minimum-distance selection.
+
+## Recipe and configuration safety
+
+- Validate recipe shape rows, symbols, and materials before registration.
+- Log invalid configuration with the affected section and expected format.
+- Disable only the invalid recipe rather than preventing the entire plugin from enabling.
+- Add configuration versioning and safe migration for future changes.
+
+## Testing priorities
+
+1. Custom compass and lodestone crafting previews show custom names and lore.
+2. Vanilla items cannot participate in the Hardcore system.
+3. Multiple compasses can share one Hardcore Lodestone.
+4. Breaking a shared lodestone untracks all matching compasses.
+5. Crafting a new compass does not reset death count or first-death preservation.
+6. Lodestone protection modes behave correctly.
+7. Offline compasses are corrected after the player rejoins.
+8. Invalid recipe configuration does not crash plugin startup.
