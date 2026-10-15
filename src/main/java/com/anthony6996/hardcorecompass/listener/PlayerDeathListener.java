@@ -1,8 +1,54 @@
 package com.anthony6996.hardcorecompass.listener;
-import com.anthony6996.hardcorecompass.config.ConfigManager; import com.anthony6996.hardcorecompass.manager.*;
-import org.bukkit.event.*; import org.bukkit.event.entity.PlayerDeathEvent; import org.bukkit.entity.Player; import org.bukkit.inventory.ItemStack;
+
+import com.anthony6996.hardcorecompass.config.ConfigManager;
+import com.anthony6996.hardcorecompass.manager.CompassManager;
+import com.anthony6996.hardcorecompass.manager.LivesManager;
+import com.anthony6996.hardcorecompass.manager.TeleportManager;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
+import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.inventory.ItemStack;
+
 public final class PlayerDeathListener implements Listener {
- private final LivesManager lives; private final CompassManager compass; private final TeleportManager teleport; private final ConfigManager config;
- public PlayerDeathListener(LivesManager l,CompassManager c,TeleportManager t,ConfigManager cfg){lives=l;compass=c;teleport=t;config=cfg;}
- @EventHandler(priority=EventPriority.HIGHEST) public void onDeath(PlayerDeathEvent e){Player p=e.getEntity();lives.initialize(p.getUniqueId());ItemStack bound=compass.findBoundCompass(p);int deaths=lives.deaths(p.getUniqueId())+1;boolean preserve=deaths==1&&bound!=null&&lives.markCompassPreserved(p.getUniqueId());int remaining=lives.recordDeath(p.getUniqueId());if(config.wipeInventory())e.getDrops().clear();e.setDroppedExp(config.clearXp()?0:e.getDroppedExp());if(config.clearEnderChest())p.getEnderChest().clear();if(config.clearXp()){p.setExp(0);p.setLevel(0);p.setTotalExperience(0);}if(config.clearBedSpawn())p.setBedSpawnLocation(null,true);if(preserve)e.getDrops().add(bound);if(remaining>0)e.setDeathMessage(config.getMessage(p,"death-one").replace("{lives}",String.valueOf(remaining)));else e.setDeathMessage(config.getMessage(p,"death-final"));if(config.enableRtp())teleport.relocate(p);}
+    private final LivesManager lives;
+    private final CompassManager compass;
+    private final TeleportManager teleport;
+    private final ConfigManager config;
+
+    public PlayerDeathListener(LivesManager lives, CompassManager compass, TeleportManager teleport, ConfigManager config) {
+        this.lives = lives;
+        this.compass = compass;
+        this.teleport = teleport;
+        this.config = config;
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onDeath(PlayerDeathEvent event) {
+        Player player = event.getEntity();
+        lives.initialize(player.getUniqueId());
+        ItemStack preservedCompass = compass.findTaggedCompass(player);
+        int deaths = lives.deaths(player.getUniqueId()) + 1;
+        boolean preserve = deaths == 1 && preservedCompass != null && lives.markCompassPreserved(player.getUniqueId());
+        int remaining = lives.recordDeath(player.getUniqueId());
+
+        if (config.wipeInventory()) event.getDrops().clear();
+        if (preserve) event.getDrops().add(preservedCompass);
+        event.setDroppedExp(config.clearXp() ? 0 : event.getDroppedExp());
+        if (config.clearEnderChest()) player.getEnderChest().clear();
+        if (config.clearXp()) {
+            player.setExp(0);
+            player.setLevel(0);
+            player.setTotalExperience(0);
+        }
+        if (config.clearBedSpawn()) player.setBedSpawnLocation(null, true);
+
+        if (remaining > 0) {
+            event.setDeathMessage(config.getMessage(player, "death-one").replace("{lives}", String.valueOf(remaining)));
+        } else {
+            event.setDeathMessage(config.getMessage(player, "death-final"));
+        }
+        if (config.enableRtp()) teleport.relocate(player);
+    }
 }
