@@ -1,5 +1,5 @@
 # HardcoreCompass defaults for Paper/Purpur 1.21.1, Java 21
-config-version: 2
+config-version: 3
 lives:
   starting: 2
   debug-info: true
@@ -23,27 +23,27 @@ starter:
   enabled: true
   lodestone: true
   compass: true
+recipe:
+  enabled: true
+  shape:
+    - RRR
+    - RCR
+    - RRR
+  ingredients:
+    R: REDSTONE
+    C: COMPASS
 messages:
   language: en
-  first-join: '&aWelcome! You have {lives} lives. Your compass is ready.'
-  death-one: '&eThat was close! {lives} life left. Your tagged compass survives this first death.'
-  death-final: '&cNo lives remain. Your inventory was cleared and you have been relocated.'
-  no-world: '&cConfigured world not found; safe relocation was skipped.'
-  lives-self: '&eLives remaining: {lives}'
-  lives-other: '&e{player} has {lives} lives.'
-  set-lives: '&aSet {player} to {lives} lives.'
-  reset: '&aReset {player} to starting lives and cleared death/compass history.'
-  info: '&e{player}: lives={lives}, deaths={deaths}, compass previously preserved={compass}'
-  reloaded: '&aHardcoreCompass configuration reloaded.'
-  usage: '&eUse /hcompass help for commands.'
-  help: |-
-    &6=== HardcoreCompass ===
-    &e/hcompass info &7- View compass status
-    &e/hcompass lang <es|en> &7- Toggle language
-    &e/hcompass give <player> [type] &7- Give starter gear (admin)
-    &e/hcompass reset <player> &7- Reset player lives (admin)
-    &e/hcompass help &7- Show this help menu
+  compass-name: '&6Hardcore Compass'
+  compass-name-lodestone: '&6Hardcore Lodestone'
+  compass-bound: '&aCompass linked to lodestone.'
+  compass-bound-lore: '&7Currently tracking: {x}, {y}, {z}'
+  compass-unbound: '&7Right-click a {lodestone_name} to start tracking'
+  compass-unbound-status: '&7Tracking lost. Right-click a {lodestone_name} to re-link.'
+  lodestone-name: 'lodestone'
+  lodestone-lore: '&7Place this block to anchor your compass tracking'
   compass-lore: '&7Right-click a lodestone to start tracking'
+  compass-lost: '&eYour tracked lodestone was broken. Right-click another to re-link.'
   give-usage: '&eUsage: /hcompass give <player> [compass|lodestone|all]'
   give-success: '&aGave {item} to {player}.'
   player-not-found: '&cThat player is not online.'
@@ -51,38 +51,35 @@ messages:
   lang-set: '&aLanguage changed and saved.'
   lang-current-default: '&eYour language follows the server default.'
   en:
-    first-join: '&aWelcome! You have {lives} lives. Your compass is ready.'
-    death-one: '&eThat was close! {lives} life left. Your tagged compass survives this first death.'
-    death-final: '&cNo lives remain. Your inventory was cleared and you have been relocated.'
-    help: |-
-      &6=== HardcoreCompass ===
-      &e/hcompass info &7- View compass status
-      &e/hcompass lang <es|en> &7- Toggle language
-      &e/hcompass give <player> [type] &7- Give starter gear (admin)
-      &e/hcompass reset <player> &7- Reset player lives (admin)
-      &e/hcompass help &7- Show this help menu
+    compass-name: '&6Hardcore Compass'
+    compass-name-lodestone: '&6Hardcore Lodestone'
+    compass-bound: '&aCompass linked to lodestone.'
+    compass-bound-lore: '&7Currently tracking: {x}, {y}, {z}'
+    compass-unbound: '&7Right-click a {lodestone_name} to start tracking'
+    compass-unbound-status: '&7Tracking lost. Right-click a {lodestone_name} to re-link.'
+    lodestone-name: 'lodestone'
+    lodestone-lore: '&7Place this block to anchor your compass tracking'
+    compass-lost: '&eYour tracked lodestone was broken. Right-click another to re-link.'
     compass-lore: '&7Right-click a lodestone to start tracking'
     give-usage: '&eUsage: /hcompass give <player> [compass|lodestone|all]'
     give-success: '&aGave {item} to {player}.'
     player-not-found: '&cThat player is not online.'
     lang-usage: '&eUsage: /hcompass lang <es|en>'
     lang-set: '&aLanguage changed and saved.'
-    lang-current: '&eYour language is {language}.'
   es:
-    first-join: '&a¡Bienvenido! Tienes {lives} vidas. Tu brújula está lista.'
-    death-one: '&e¡Por poco! Te queda {lives} vida. Tu brújula sobrevive a esta primera muerte.'
-    death-final: '&cNo te quedan vidas. Tu inventario se limpió y te hemos trasladado.'
-    help: |-
-      &6=== HardcoreCompass ===
-      &e/hcompass info &7- Ver el estado de la brújula
-      &e/hcompass lang <es|en> &7- Cambiar idioma
-      &e/hcompass give <jugador> [tipo] &7- Dar equipo inicial (admin)
-      &e/hcompass reset <jugador> &7- Reiniciar las vidas (admin)
-      &e/hcompass help &7- Mostrar esta ayuda
+    compass-name: '&6Brújula Hardcore'
+    compass-name-lodestone: '&6Magnetita Hardcore'
+    compass-bound: '&aBrújula vinculada a la magnetita.'
+    compass-bound-lore: '&7Rastreando actualmente: {x}, {y}, {z}'
+    compass-unbound: '&7Haz clic derecho en una {lodestone_name} para empezar a rastrear'
+    compass-unbound-status: '&7Rastreo perdido. Haz clic derecho en una {lodestone_name} para volver a vincular.'
+    lodestone-name: 'magnetita'
+    lodestone-lore: '&7Coloca este bloque para fijar el rastreo de tu brújula'
+    compass-lost: '&eSe rompió la magnetita rastreada. Haz clic derecho en otra para volver a vincular.'
     compass-lore: '&7Haz clic derecho en una magnetita para empezar a rastrear'
     give-usage: '&eUso: /hcompass give <jugador> [compass|lodestone|all]'
     give-success: '&aSe entregó {item} a {player}.'
+    give-success-all: '&aSe entregó todo el equipo a {player}.'
     player-not-found: '&cEse jugador no está conectado.'
     lang-usage: '&eUso: /hcompass lang <es|en>'
     lang-set: '&aIdioma cambiado y guardado.'
-    lang-current: '&eTu idioma es {language}.'
