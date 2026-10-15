@@ -1,0 +1,120 @@
+HARDCORE COMPASS — FEATURE AND IMPLEMENTATION SPECIFICATION
+Repository: Anthony6996/hardcore-compass
+Target platform: Paper/Purpur 1.21.1; Java 21; Maven
+Purpose: Describe intended and currently observed behavior for external technical review.
+
+IMPORTANT REVIEW NOTE
+This document describes the behavior represented by the source inspected while preparing this specification. It is not a guarantee that every stated requirement is fully realized. In particular, the current source has identifiable limitations called out in the relevant sections: lost-compass lore does not use the holder's language; the teleport fallback is not an unconditional guarantee if no safe surface can be found; and radius-constrained sampling and exact final teleport success depend on the world/server. Review source and workflow results before treating this as a formal correctness guarantee.
+
+1. PROJECT OVERVIEW
+HardcoreCompass is a Paper/Purpur server plugin that combines a player lives/death system, configurable death penalties, safe random teleport (RTP) after death, and a custom tagged compass/lodestone tracking mechanic. It supports English and Spanish messages, personal language preferences, configurable recipe ingredients/shape, and admin commands.
+
+Build configuration uses Maven, Java release 21, and Paper API 1.21.1-R0.1-SNAPSHOT as a provided dependency. The GitHub Actions workflow at .github/workflows/build.yml runs `mvn clean package` on push, pull request, and manual dispatch, and uploads target/*.jar as an artifact.
+
+2. ARCHITECTURE AND COMPONENT RESPONSIBILITIES
+- HardcoreCompassPlugin: Bukkit JavaPlugin lifecycle. Saves default config, initializes configuration and player storage, creates managers, registers listeners and command executor/tab completer, and saves player data at shutdown. Configuration reload refreshes ConfigManager and re-registers the recipe.
+- ConfigManager: wraps plugin config.yml, validates/sanitizes selected settings, provides typed getters, language resolution, localized message lookup, and setters that save radius/language updates.
+- PlayerData: UUID-keyed persistent YAML storage in the plugin data folder's players.yml. Stores lives, deaths, preserved-compass state, player language, and used RTP spawn coordinates. Saving uses a temporary file and atomic replacement where supported, with replacement fallback.
+- LivesManager: operations over PlayerData for initialization, lives/deaths, preserved-compass flag, reset, and save.
+- CompassManager: custom tagged items, recipe registration, compass binding, target-loss handling, and starter equipment. Uses a plugin NamespacedKey and PersistentDataContainer BYTE marker to identify plugin compasses/lodestones.
+- CompassInteractionListener: handles main-hand right-click on a lodestone with a tagged compass; listens for lodestone block breaks.
+- CompassCraftListener: replaces the prepared result for the plugin's custom shaped recipe with a tagged compass.
+- TeleportManager: selects safe surface positions around the death location, prefers destinations separated from the player's stored used spawn points, persists the chosen location, then requests Paper asynchronous teleport.
+- CompassCommand: command parsing, permissions, localized feedback, radius configuration, help menus, language commands and admin utilities.
+- PlayerJoinListener, PlayerDeathListener, PlayerRespawnListener: lifecycle events for initial player data/starter equipment, death penalties/lives/compass preservation/RTP scheduling, and respawn-related plugin registration. The current PlayerRespawnListener source is empty apart from construction; do not assume it performs additional work.
+
+3. CUSTOM COMPASS AND LODESTONE ITEMS
+3.1 Identity and creation
+A plugin compass is a vanilla COMPASS ItemStack with a plugin PersistentDataContainer marker. A plugin lodestone item is a LODESTONE ItemStack with the same plugin marker key. Names and lore are set from the recipient's language when the item is created. Recipe-created items use the server default language because the recipe output has no player recipient at creation time; the craft preparation listener replaces the result with a tagged compass and supplies the crafting player where available.
+
+The compass target is stored in Bukkit CompassMeta as a lodestone Location. An unbound compass has no target. A bound compass sets the target and tracked flag and receives lore containing block coordinates. The target marker and custom PDC tag distinguish the plugin's compass from ordinary vanilla compasses.
+
+3.2 Binding and rebinding expected behavior
+When a player right-clicks a LODESTONE block while holding a tagged plugin compass in the main hand, the interaction listener binds that compass to the clicked block's Location, marks it as tracked, refreshes its lore in the player's preferred language, plays ITEM_LODESTONE_COMPASS_LOCK, and sends the localized compass-bound message. The event is ignored for off-hand use, non-lodestone blocks, non-right-click interactions, and untagged compasses. Repeating this action on another lodestone rebinds the same compass to the new target.
+
+3.3 Tracking loss on lodestone break
+On a non-cancelled lodestone BlockBreakEvent, the manager scans online players' inventories and ender chests for tagged compasses whose stored world and block coordinates match the broken block. Matching compasses are set to untracked (CompassMeta.setLodestoneTracked(false)). The target information remains in metadata, allowing the vanilla compass to indicate an untracked/missing lodestone until rebound.
+
+Observed caveat: the current manager updates lost-item lore using a null player recipient, which resolves to the server default language, not necessarily the item's holder's personal language. It also replaces lore with the unbound guidance text rather than the dedicated compass-unbound-status/compass-lost message in some config versions. Offline players and storage outside online inventories/ender chests are not scanned. Treat the user-language-specific tracking-loss lore behavior as a requirement to verify or fix, not as proven implementation.
+
+4. DYNAMIC LOCALIZED ITEM LORE
+Config messages provide English and Spanish values for compass names, lodestone names, bound coordinate lore, unbound guidance, lost-state guidance, and lodestone lore. Message lookup tries the requested language, then English, then top-level legacy keys; ampersand color codes are translated.
+
+At compass creation/binding, bound lore substitutes {x}, {y}, {z} with target block coordinates; unbound lore substitutes {lodestone_name} with the localized lodestone noun. Player-specific language is obtained from PlayerData, falling back to configured server default. Changing a player's language affects messages and newly refreshed item lore; existing items are not globally rewritten merely by changing language. Rebinding refreshes lore. Tracking loss is intended to display localized guidance, but the caveat in section 3.3 applies.
+
+5. CUSTOMIZABLE SHAPED CRAFTING RECIPE
+Recipe configuration is under recipe.enabled, recipe.shape, and recipe.ingredients in config.yml. The shape is a list of up to three rows, with up to three characters per row; spaces represent empty crafting slots. Each non-space character must map to a valid Bukkit Material name in recipe.ingredients. Defaults in the currently documented configuration are a 3x3 redstone-and-compass pattern (RRR/RCR/RRR); ConfigManager fallback defaults may use a cross shape when no valid shape is configured.
+
+CompassManager removes the recipe under its NamespacedKey before registration. When enabled, it validates shape dimensions, that at least one ingredient symbol is used, and that each used character resolves to a material. It registers a ShapedRecipe whose result is a tagged compass. The craft preparation event recognizes the recipe key and replaces the visible result with a tagged compass localized for the crafting player where available. On config reload the plugin reloads configuration and re-registers the recipe.
+
+Expected configuration behavior: invalid material strings may be repaired to fallback materials by ConfigManager; invalid shape structures or unresolved ingredient symbols can still cause recipe registration to throw. A robust implementation should validate each row, key, and shape consistently and report a clear config error without silently crashing plugin enable.
+
+6. LIVES, DEATH HANDLING, AND PENALTIES
+PlayerData stores lives and deaths by UUID. LivesManager initializes missing players using lives.starting, increments death count and subtracts one life on death, bounded at zero. PlayerDeathListener handles death event effects: optional inventory wipe, optional ender-chest clear, optional XP loss, optional bed-spawn clear, localized death messages, and compass preservation logic. The configured first-death preservation logic attempts to retain one tagged compass through the death event, gated by the saved preserved-compass flag.
+
+Penalty switches live under penalties: wipe-inventory, clear-ender-chest, clear-xp, clear-bed-spawn, enable-rtp. RTP begins when enabled. Starter item switches live under starter.enabled, starter.lodestone and starter.compass. Exact death-event ordering and Bukkit keep-inventory semantics should be tested on the target Paper version.
+
+7. RANDOM TELEPORT (RTP) AFTER DEATH
+7.1 Sampling
+TeleportManager captures the player's current/death-event location and world, then schedules safe-location selection on the server scheduler. It samples random angle uniformly and radius with a square-root transform between configured min/max radii (an area-uniform disk-annulus strategy), centered on the death location. The target X/Z is clamped to the world border with a configured margin. Number of samples is controlled by teleport.attempts.
+
+7.2 Safe surface search
+For each sampled X/Z, it searches outward in a square ring up to teleport.search-radius, queries the MOTION_BLOCKING_NO_LEAVES height map, and checks ground, feet, and head positions. It requires solid non-liquid ground, passable feet/head blocks, adequate vertical bounds, and rejects lava when avoid-lava is enabled. Void checking rejects locations close to the minimum world height when avoid-void is enabled. Safe locations are returned centered in the block at x+0.5/z+0.5. The implementation does not explicitly filter biomes despite that being a possible policy; it should not be claimed that all biomes are validated.
+
+7.3 Used-spawn persistence and minimum distance
+PlayerData stores prior selected spawn coordinates under each player's UUID as world UUID and block X/Y/Z. TeleportManager reads this list and computes nearest prior location using horizontal X/Z Euclidean distance in the same world. ConfigManager's teleport.spawn-min-distance defaults to 750 blocks and is configurable in config.yml. A candidate meeting the threshold is selected immediately. When all sampled candidates fall short, the manager retains the safe candidate with the greatest distance from previous same-world spawn records and uses it rather than refusing solely due to the threshold.
+
+The chosen coordinate is recorded and saved before asynchronous teleport is requested. Thus the history represents selected/attempted destinations, not only confirmed successful teleports. The distance comparison is horizontal and within the same world. The current selection evaluates candidate returned by local safe search; it does not guarantee a globally optimal distance or a candidate in the exact requested annulus after border clamping/local search.
+
+7.4 Fallback and guarantees
+If no random candidate yields a safe location, code attempts a safe location near the death coordinates, then near the world's configured spawn. If neither produces a safe surface, it logs a severe error and cannot choose a safe destination. Async teleport failure is logged. Therefore the implementation prefers a farthest-separation fallback and tries local/world-spawn fallbacks, but cannot mathematically guarantee a teleport if the world offers no safe surface, the player disconnects, or teleportAsync fails. Do not describe it as an unconditional guaranteed respawn teleport. The strongest accurate statement is: it does not fail merely because the minimum distance threshold was unmet; it uses the farthest sampled safe candidate, and has additional safe-location fallbacks.
+
+RTP settings include teleport.min-radius, max-radius, attempts, border-margin, avoid-water, avoid-lava, avoid-void, search-radius and spawn-min-distance. Min/max radii are measured in blocks from the death location before border clamping. Config validation prevents negative minimum and max below min by correcting values.
+
+8. COMMANDS AND PERMISSIONS
+Root command is /hcompass. Admin permission is hardcorecompass.admin.
+- /hcompass help: admin permission holders receive help-admin; others receive help-player.
+- /hcompass lang [en|es]: player may query or set their personal language; valid stored preference is persisted by UUID. Server default messages.language is used when no personal preference is stored.
+- /hcompass radius <min> <max>: admin-only. Integers must be nonnegative and max >= min. Values are saved to config.yml and subsequent RTP selection reads live ConfigManager values. Confirmation is localized and substitutes {min}/{max}.
+- /hcompass reload: admin-only; reloads config and re-registers recipe.
+- /hcompass give <player> [compass|lodestone|all]: admin-only; target must be online, items are tagged and generated with target's personal language. Inventory overflow is dropped at target location.
+- /hcompass reset <player>: admin-only; resets saved player data/lives through LivesManager. Verify exact desired preservation/reset semantics since clearing the whole player record can also clear language and RTP history.
+- /hcompass info [player]: source includes this utility, restricted to self for non-admin and another online target for admins; not necessarily shown in requested help menu.
+
+Player-facing help is intended to contain lang/help only. Admin help is intended to list give, reset, radius, reload, lang, and help. The currently inspected command source's help behavior and tab completion should be cross-checked against config strings, especially commands such as info which may exist but not appear in the requested list. Help text is multiline localized usage text, not currently interactive clickable/hoverable components.
+
+9. LOCALIZATION
+Supported languages: English (en) and Spanish (es). messages.language sets server default. PlayerData stores optional per-player language. ConfigManager resolves player language, validates allowed language codes, falls back to server default, then English/top-level keys as applicable, and translates legacy & color codes. Player-directed command, join/death, item names/lore, binding and radius feedback are intended to follow the recipient's language. Console messages use server default. If an unknown language is requested by command, usage is shown rather than storing it.
+
+Changing the server language via admin command/config affects players without an individual preference. Individual preference overrides server default. Language changes persist in players.yml. Existing item metadata is not necessarily automatically refreshed until the item is recreated/rebound or otherwise updated.
+
+10. CONFIGURATION SUMMARY
+- lives.starting: initial life count (minimum 1 through getter).
+- lives.debug-info: debug/info behavior toggle where used.
+- world: configured world name for systems that use it.
+- teleport.min-radius / max-radius: radial RTP range in blocks.
+- teleport.attempts: bounded random candidates.
+- teleport.border-margin: world-border safety inset.
+- teleport.avoid-water / avoid-lava / avoid-void: hazard rules (surface checks may reject liquids independently).
+- teleport.search-radius: local surface search extent.
+- teleport.spawn-min-distance: desired horizontal distance from previous same-world personal spawns, default 750.
+- penalties.*: death consequences described above.
+- starter.*: starter equipment switches.
+- recipe.enabled, recipe.shape, recipe.ingredients: custom crafting.
+- messages.language and messages.en/messages.es: localized text.
+
+11. PERSISTENCE AND OPERATIONAL NOTES
+Player state is stored in the plugin data folder's players.yml. Used spawn entries are per player, not server-wide. Current used-spawn history has no pruning or cap, so long-lived servers may accumulate YAML entries. Atomic file replacement is attempted; fallback replacement is used where atomic moves are unavailable. Most Bukkit world/inventory interaction is expected on the primary server thread. RTP uses Paper's teleportAsync for the final teleport; async success is not synchronously awaited by the calling listener.
+
+12. TEST / REVIEW CHECKLIST
+- Build with Java 21 using `mvn clean package`; inspect Maven output and resulting target JAR.
+- Validate plugin.yml command declaration, permissions, and Paper API methods for 1.21.1.
+- Test main-hand tagged compass binding, off-hand rejection, rebinding, and ordinary compass rejection.
+- Break a bound lodestone; test matching compasses in inventory and ender chest, cross-world coordinate collisions, offline storage, and correct personal-language lost lore.
+- Reload recipe and test enabled/disabled states, valid custom patterns, invalid dimensions, missing symbols, invalid materials and crafting result PDC tag.
+- Test per-player language persistence, default fallback, English/Spanish commands, console behavior, names/lore, and existing item refresh expectations.
+- Test RTP across flat, ocean, lava, void-edge, border, and no-safe-surface worlds. Verify threshold selection, farthest-candidate fallback, death/world-spawn fallback, persistence across restart, and teleportAsync rejection/disconnection.
+- Verify reset semantics for lives, deaths, language, and spawn history; confirm whether reset is intended to clear all or only game-state fields.
+- Inspect GitHub Actions run and downloaded artifact; a successful package job does not by itself prove gameplay behavior.
+
+END OF SPECIFICATION
