@@ -1,50 +1,48 @@
-# Improvement suggestions
+# Improvement suggestions — updated
 
-## Gameplay
+## Compass identity
 
-- Add configurable behaviour for players at zero lives: spectator mode, temporary ban, permanent elimination, or a custom command.
-- Consider making the first-death compass preservation configurable, so servers can choose whether the compass survives the first death, all deaths, or no deaths.
-- Add an optional cooldown or cost before a player can use `/hcompass lives`, if intended for players rather than admins.
-- Consider giving a configurable message when the compass is preserved or lost, so players understand the hardcore rule.
-- Add support for a configurable compass display name, lore, or custom model data so the starter compass is visually distinct.
+- Track the starter/base compass by a persistent identifier, such as Persistent Data Container key, UUID, or custom model data, rather than preserving the first lodestone-bound compass found.
+- Prevent players from creating an unlimited supply of preserveable compasses by binding ordinary compasses to lodestones.
+- Add configurable compass name, lore, and custom model data.
+- Add messages when the compass is preserved on the first death and lost thereafter.
+
+## Zero-life handling
+
+- Add a configurable outcome at zero lives: spectator mode, temporary ban, permanent elimination, custom command, or current respawn-only behaviour.
+- Ensure the chosen zero-life outcome is clearly documented and tested.
 
 ## Relocation
 
-- Implement or remove `teleport.attempts`; currently it is documented but unused.
-- Define explicit fallback behaviour when no safe location is found: retry later, use world spawn, use a fixed fallback location, or leave the player at the normal respawn point.
-- Move expensive block scanning off the main thread where practical, or cache safe spawn candidates.
-- Add a minimum distance from other players or claimed/protected regions if the server uses protection plugins.
-- Log relocation failures with the player UUID, target coordinates, and reason to make support easier.
-- Add a config option to prevent relocation into generated but unsafe areas such as ocean monuments, deep dark, lava lakes, or the Void.
+- Consider moving the bounded safe-location scan off the main thread or limiting its per-tick work for busy servers.
+- Add exclusion zones for claims, protected regions, other players, and dangerous generated structures.
+- Log the selected destination and fallback reason at debug level to simplify support.
+- Consider separating horizontal target selection from vertical safe-surface search more explicitly, and expose a maximum search area or timeout.
+- Add an optional minimum distance from world spawn, other players, or prior death locations.
 
-## Death handling
+## Death penalties
 
-- Re-check the death/respawn timing on the exact Paper/Purpur build used in production. Relocating during `PlayerDeathEvent` can interact unexpectedly with vanilla respawn handling.
-- Consider performing relocation on `PlayerRespawnEvent` instead, or schedule it one tick later, if testing shows respawn-location conflicts.
-- Make clearing the ender chest optional; some servers may want hardcore death to clear inventory and XP but preserve ender-chest contents.
-- Add configurable toggles for each death penalty: drops, XP, ender chest, bed spawn, and relocation.
-- Preserve only the intended starter/base compass, rather than the first arbitrary lodestone-bound compass found in inventory.
+- Keep the individual penalty toggles, and consider adding an option to keep specific items, such as the base compass, even when inventory wiping is enabled.
+- Add an optional death-chest or grave system so wiped inventory is recoverable for a configurable period.
+- Consider a configurable delay before relocation, or relocation on respawn, if testing reveals conflicts with vanilla respawn.
 
 ## Data and reliability
 
-- Use atomic writes for `players.yml`, for example write to a temporary file and then move it into place, to reduce corruption risk on crashes.
-- Add automatic backups or a save-on-disable hook for player data.
-- Consider SQLite or MySQL as optional storage for larger servers or future multi-server support.
-- Validate configuration values at startup: negative radii, minimum radius greater than maximum radius, invalid world names, and invalid language keys.
-- Add a version field to `config.yml` and migrate old configs safely when defaults change.
+- Use atomic file writes for `players.yml` and save on server disable.
+- Add optional SQLite/MySQL storage for larger servers or future multi-server setups.
+- Validate configuration at startup: invalid world, minimum radius greater than maximum radius, non-positive attempts, and invalid message keys.
+- Add config versioning and safe migration.
 
 ## Commands and permissions
 
-- Add tab completion for player names, subcommands, and life amounts.
-- Add `/hcompass reset <player>` to reset lives and death count.
-- Add `/hcompass info <player>` showing lives, deaths, and whether a base compass has been preserved.
-- Consider a console-compatible version of every administrative command.
-- Document whether `hardcorecompass.lives` should remain default-true; it may be preferable to make player lookup default-true but restrict administrative actions to `hardcorecompass.admin`.
+- Add `/hcompass reset <player>` to reset lives, deaths, and compass-preservation state.
+- Add `/hcompass info <player>` showing lives, deaths, and whether the first-death compass has already been used.
+- Add tab completion for subcommands, player names, and numeric arguments.
+- Ensure all admin commands work from console.
 
 ## Developer experience
 
-- Add unit tests for lives consumption, death counting, compass preservation, and configuration validation.
-- Add a GitHub Actions workflow to build the jar with JDK 21 and Maven on every push or pull request.
-- Publish release jars through GitHub Releases so server owners do not need to build from source.
-- Add a `plugin.yml` example and a complete default `config.yml` to the README.
-- Add a changelog and semantic versioning for future releases.
+- Add unit tests for first-death compass preservation, second-death loss, death counting, penalty toggles, and RTP fallback.
+- Add a GitHub Actions workflow to build with JDK 21 and Maven.
+- Publish built jars in GitHub Releases.
+- Add a changelog and semantic versioning.
