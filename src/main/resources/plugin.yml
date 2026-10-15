@@ -7,7 +7,7 @@ description: UUID lives, lodestone compasses, and safe random respawns.
 commands:
   hcompass:
     description: HardcoreCompass administration and player information
-    usage: /hcompass <reload|setlives|getlives|reset|info|give|lang>
+    usage: /hcompass help
 permissions:
   hardcorecompass.admin:
     description: Manage HardcoreCompass lives, items, language, and configuration
