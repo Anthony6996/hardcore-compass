@@ -3,6 +3,7 @@ package com.anthony6996.hardcorecompass.config;
 import com.anthony6996.hardcorecompass.HardcoreCompassPlugin;
 import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.entity.Player;
 import java.util.Locale;
 
 public final class ConfigManager {
@@ -17,9 +18,7 @@ public final class ConfigManager {
     }
     public boolean setLanguage(String language) {
         if (language == null || (!language.equalsIgnoreCase("en") && !language.equalsIgnoreCase("es"))) return false;
-        values.set("messages.language", language.toLowerCase(Locale.ROOT));
-        plugin.saveConfig();
-        return true;
+        values.set("messages.language", language.toLowerCase(Locale.ROOT)); plugin.saveConfig(); return true;
     }
     private FileConfiguration c() { return values; }
     public int startingLives() { return Math.max(1,c().getInt("lives.starting",2)); }
@@ -41,9 +40,15 @@ public final class ConfigManager {
     public boolean starterEnabled() { return c().getBoolean("starter.enabled",true); }
     public boolean starterLodestone() { return c().getBoolean("starter.lodestone",true); }
     public boolean starterCompass() { return c().getBoolean("starter.compass",true); }
-    public String message(String key) {
-        String language=c().getString("messages.language","en").toLowerCase(Locale.ROOT);
-        String localized=c().getString("messages."+language+"."+key);
-        return ChatColor.translateAlternateColorCodes('&',localized==null?c().getString("messages."+key,""):localized);
+    public String message(String key) { return getMessage(null, key); }
+    public String getMessage(Player player, String key) { return getMessage(player == null ? null : plugin.getPlayerData().getLanguage(player.getUniqueId()), key); }
+    public String getMessage(String language, String key) {
+        String chosen = language == null || language.isBlank() ? c().getString("messages.language","en") : language;
+        if (chosen == null) chosen = "en";
+        chosen = chosen.toLowerCase(Locale.ROOT);
+        String localized = c().getString("messages."+chosen+"."+key);
+        if (localized == null && !chosen.equals("en")) localized = c().getString("messages.en."+key);
+        if (localized == null) localized = c().getString("messages."+key, "");
+        return ChatColor.translateAlternateColorCodes('&', localized);
     }
 }
