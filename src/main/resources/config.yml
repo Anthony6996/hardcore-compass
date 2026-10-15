@@ -43,6 +43,7 @@ messages:
     &e/hcompass give <player> [type] &7- Give starter gear (admin)
     &e/hcompass reset <player> &7- Reset player lives (admin)
     &e/hcompass help &7- Show this help menu
+  compass-lore: '&7Right-click a lodestone to start tracking'
   give-usage: '&eUsage: /hcompass give <player> [compass|lodestone|all]'
   give-success: '&aGave {item} to {player}.'
   player-not-found: '&cThat player is not online.'
@@ -60,6 +61,7 @@ messages:
       &e/hcompass give <player> [type] &7- Give starter gear (admin)
       &e/hcompass reset <player> &7- Reset player lives (admin)
       &e/hcompass help &7- Show this help menu
+    compass-lore: '&7Right-click a lodestone to start tracking'
     give-usage: '&eUsage: /hcompass give <player> [compass|lodestone|all]'
     give-success: '&aGave {item} to {player}.'
     player-not-found: '&cThat player is not online.'
@@ -77,6 +79,7 @@ messages:
       &e/hcompass give <jugador> [tipo] &7- Dar equipo inicial (admin)
       &e/hcompass reset <jugador> &7- Reiniciar las vidas (admin)
       &e/hcompass help &7- Mostrar esta ayuda
+    compass-lore: '&7Haz clic derecho en una magnetita para empezar a rastrear'
     give-usage: '&eUso: /hcompass give <jugador> [compass|lodestone|all]'
     give-success: '&aSe entregó {item} a {player}.'
     player-not-found: '&cEse jugador no está conectado.'
