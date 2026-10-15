@@ -16,7 +16,7 @@ teleport:
 penalties: {wipe-inventory: true, clear-ender-chest: true, clear-xp: true, clear-bed-spawn: true, enable-rtp: true}
 starter: {enabled: true, lodestone: true, compass: true}
 compass: {preserve-on-first-death: true, reset-death-count-on-new-compass: false}
-lodestone: {break-protection: none, untrack-compasses-on-break: true}
+lodestone: {break-protection: none, untrack-compasses-on-break: true, require-custom-block: false}
 recipe:
   compass: {enabled: true, shape: [" R ", "RCR", " R "], ingredients: {R: REDSTONE, C: COMPASS}}
   lodestone: {enabled: true, shape: ["III", "ILI", "III"], ingredients: {I: IRON_INGOT, L: LODESTONE}}
