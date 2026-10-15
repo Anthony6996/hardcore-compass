@@ -24,6 +24,8 @@ public final class PlayerData {
     public int incrementDeaths(UUID id) { int next = getDeaths(id) + 1; data.set(path(id) + ".deaths", next); return next; }
     public boolean hasPreservedCompass(UUID id) { return data.getBoolean(path(id) + ".hasPreservedCompass", false); }
     public void setHasPreservedCompass(UUID id, boolean value) { data.set(path(id) + ".hasPreservedCompass", value); }
+    public String getLanguage(UUID id) { return data.getString(path(id) + ".language"); }
+    public void setLanguage(UUID id, String language) { data.set(path(id) + ".language", language); }
     public boolean exists(UUID id) { return data.contains(path(id) + ".lives"); }
     public void reset(UUID id) { data.set(path(id), null); }
     public void save() {
