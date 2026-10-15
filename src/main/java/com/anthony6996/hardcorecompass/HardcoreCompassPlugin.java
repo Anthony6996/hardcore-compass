@@ -27,7 +27,9 @@ public final class HardcoreCompassPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new PlayerJoinListener(livesManager, compassManager, configManager), this);
         getServer().getPluginManager().registerEvents(new PlayerDeathListener(livesManager, compassManager, teleportManager, configManager), this);
         getServer().getPluginManager().registerEvents(new PlayerRespawnListener(configManager), this);
-        getCommand("hcompass").setExecutor(new CompassCommand(this, livesManager, configManager));
+        CompassCommand command = new CompassCommand(this, livesManager, configManager);
+        getCommand("hcompass").setExecutor(command);
+        getCommand("hcompass").setTabCompleter(command);
         if (configManager.debugInfo()) Bukkit.getOnlinePlayers().forEach(p -> p.setReducedDebugInfo(true));
         getLogger().info("HardcoreCompass enabled for Paper/Purpur 1.21.1.");
     }
