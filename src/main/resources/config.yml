@@ -16,7 +16,7 @@ teleport:
 penalties: {wipe-inventory: true, clear-ender-chest: true, clear-xp: true, clear-bed-spawn: true, enable-rtp: true}
 starter: {enabled: true, lodestone: true, compass: true}
 compass: {preserve-on-first-death: true, reset-death-count-on-new-compass: false}
-lodestone: {break-protection: none, untrack-compasses-on-break: true, require-custom-block: false}
+lodestone: {break-protection: none, untrack-compasses-on-break: true, require-custom-block: true}
 recipe:
   compass: {enabled: true, shape: [" R ", "RCR", " R "], ingredients: {R: REDSTONE, C: COMPASS}}
   lodestone: {enabled: true, shape: ["III", "ILI", "III"], ingredients: {I: IRON_INGOT, L: LODESTONE}}
@@ -31,8 +31,9 @@ messages:
     lodestone-lore: '&7Use this lodestone with a Hardcore Compass to track its location.'
     compass-bound: '&aYour Hardcore Compass is now tracking this lodestone.'
     compass-rebound: '&aYour Hardcore Compass now tracks the new lodestone at {x}, {y}, {z}.'
-    compass-target-broken: '&6[HardcoreCompass] &cYour compass target at {x}, {y}, {z} was broken. Rebind it at a Hardcore Lodestone.'
+    compass-target-broken: '&6[Hardcore] &cYour bound lodestone has been destroyed!'
     compass-unbound-message: '&7Right-click a Hardcore Lodestone to bind.'
+    lodestone-break-denied: '&cYou cannot break this Hardcore Lodestone.'
     no-permission: '&cNo permission.'
   es:
     compass-name: '&6Brújula Hardcore'
@@ -43,8 +44,9 @@ messages:
     lodestone-lore: '&7Usa esta piedra imán con una Brújula Hardcore para rastrear su ubicación.'
     compass-bound: '&aTu brújula Hardcore ahora apunta a esta Piedra imán.'
     compass-rebound: '&aTu brújula Hardcore ahora apunta a la nueva Piedra imán en {x}, {y}, {z}.'
-    compass-target-broken: '&6[HardcoreCompass] &cEl objetivo de tu brújula en {x}, {y}, {z} fue destruido. Vuelve a vincularla en una Piedra imán Hardcore.'
+    compass-target-broken: '&6[Hardcore] &c¡Tu piedra imán vinculada ha sido destruida!'
     compass-unbound-message: '&7Haz clic derecho en una Piedra imán Hardcore para vincularla.'
+    lodestone-break-denied: '&cNo puedes romper esta Piedra imán Hardcore.'
     no-permission: '&cNo tienes permiso.'
   compass-name: '&6Hardcore Compass'
   compass-bound-lore: '&7Bound to {x}, {y}, {z}'
