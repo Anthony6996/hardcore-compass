@@ -1,0 +1,119 @@
+HARDCORE COMPASS — EXPECTED BEHAVIOUR
+====================================
+
+Purpose and status of this document
+-----------------------------------
+This document describes intended/expected behaviour for review. It is a product specification, not proof that every behaviour is implemented in the current code. Treat requirements explicitly called out below as items to verify against the implementation and Paper 1.21.1 before release.
+
+1. Overview and core purpose
+----------------------------
+HardcoreCompass is a Paper 1.21.1 plugin intended for Hardcore survival servers. Players obtain custom Hardcore Lodestones and Hardcore Compasses to establish and navigate to a base or other chosen location. The compass should track only plugin-recognized Hardcore Lodestones, not ordinary vanilla lodestones.
+
+The plugin also implements a configurable lives/death loop. The intended default starts players with two lives. Death penalties include inventory and experience loss, clearing the ender chest and bed spawn when configured, and random safe teleport (RTP). The first death (Life 1 loss) may preserve the player's Hardcore Compass; subsequent/final death must not preserve it. Exact behaviour is governed by the server configuration and must be communicated consistently to players.
+
+2. Custom items and item metadata
+---------------------------------
+2.1 Hardcore Compass
+- Material: COMPASS.
+- Display name: orange-styled localized Hardcore Compass name (English `en`, Spanish `es`).
+- Lore: localized status text for unbound, tracking, and lost/destroyed target states. When a target has a custom label, show the target label in lore as well as the relevant status/coordinates.
+- Persistent item identity: plugin NamespacedKey `hardcore_compass` with a byte marker. A display name alone is not sufficient to identify a Hardcore Compass.
+- Binding: CompassMeta must store the selected Lodestone Location using `setLodestone`; tracked state should be true while its registered target exists.
+- Glint: use the Paper enchantment-glint override, enabled while tracking a registered active Hardcore Lodestone and disabled when unbound or when the target is destroyed/unregistered. Glint should not depend on an actual enchantment.
+- Vanilla interaction must not silently replace the plugin's intended metadata. The plugin handles/cancels the relevant main-hand interaction before applying and persisting the custom item metadata.
+
+2.2 Hardcore Lodestone item
+- Material: LODESTONE.
+- Display name: orange-styled localized Hardcore Lodestone name; anvil-provided custom name is preserved as the item's custom label.
+- Lore: localized explanatory lore (`en`/`es`).
+- Persistent item identity: NamespacedKey `hardcore_lodestone` with a byte marker. Do not use display-name matching as the identity check.
+- Anvil rename: renaming the custom item (for example, `base_1`) retains its Hardcore Lodestone PDC marker. When placed, the custom name becomes the registered location label and compass target lore should reflect it. The intended label storage key is `hardcore_lodestone_label`; because a placed vanilla Lodestone is not a tile entity, the label belongs in the plugin's coordinate registry, not block PDC.
+
+3. Lodestone placement, registry, and block mechanics
+------------------------------------------------------
+3.1 Persistent coordinate registry
+A vanilla Material.LODESTONE has no TileState/TileEntity suitable for storing plugin PDC. Therefore Hardcore placement identity and metadata must be stored by the plugin in persistent storage, keyed at minimum by world UUID and integer block X/Y/Z. Each entry should contain an explicit Hardcore marker, placing owner UUID when available, and optional custom label. The registry must survive restart and avoid relying on transient Bukkit block metadata.
+
+Registry implementation may use the plugin config or a dedicated YAML/data file; it must be updated safely and consistently. World UUID (not only world name) distinguishes dimensions/worlds. Coordinates must use block coordinates. On lookup, the block must still be Material.LODESTONE; stale entries for a replaced/removed block must not make another material count as a Hardcore Lodestone.
+
+3.2 Placement requirements
+- Register only after a successful, non-cancelled BlockPlaceEvent and only when the placed item bears the `hardcore_lodestone` PDC marker.
+- Record the precise placed block location, owner UUID, and optional anvil label.
+- Enforce a configurable minimum separation between Hardcore Lodestones, default 750 blocks, if that requirement is enabled. Define the metric (recommended horizontal X/Z Euclidean distance), worlds included (recommended same world only), and equality boundary (recommended reject distances strictly below 750; accept at 750 or greater). Validate before placement and cancel/reject without consuming the item. This requirement must not be described as implemented until configuration and event enforcement exist.
+- `/give` or otherwise newly created items bearing the correct PDC marker should work. A plain vanilla lodestone, even with a similar display name, is not Hardcore.
+- Existing lodestone blocks from before registry tracking cannot be reliably inferred as custom. They must be explicitly migrated/registered or replaced; do not silently treat every vanilla lodestone as custom.
+
+3.3 Binding interaction
+- On right-click of any LODESTONE while the main hand contains a tagged Hardcore Compass, intercept and cancel vanilla lodestone binding first.
+- If registry lookup says the clicked block is not a registered Hardcore Lodestone, reject binding and send the localized `hardcore-lodestone-only` message. Do not alter the compass target or its lore/glint.
+- If valid, set the compass target to the clicked block Location, tracked=true, record the target label on the compass (recommended PDC key `target_label`), update status/coordinates/label lore and glint, write the modified stack back into the player's main hand, and update the client inventory if needed. Play the lodestone lock sound and send the localized bound/rebound confirmation.
+- Ignore off-hand duplicate event execution; do not accidentally bind an off-hand vanilla compass. Interactions with non-Hardcore compasses should retain vanilla behavior unless explicitly specified otherwise.
+- Rebinding to the currently bound location is a successful bind but need not be described as a rebind; changing world or block coordinates is a rebind.
+
+3.4 Breaking, explosions, and stale targets
+- Player break of a registered Hardcore Lodestone follows configured break protection (`none`, `admin-only`, `owner-only` as supported). Denied breaks are cancelled and receive the localized denial message.
+- Successful break unregisters the coordinate and drops exactly one custom Hardcore Lodestone item, preserving the optional label and PDC marker; suppress ordinary drops to avoid duplicates.
+- Entity and block explosions must be handled (including Creepers/TNT and applicable bed/respawn-anchor explosions as emitted by Paper events). For each registered lodestone actually in the explosion block list, unregister it and drop exactly one custom item preserving label. Do not remove unrelated blocks from the explosion list.
+- All online players whose Hardcore Compass points at the destroyed target receive the configured immediate target-destroyed notice. The notice must not include coordinates or breaker identity. Their compass remains bound to the now-lost coordinates for recovery/rebinding, but tracked=false, lore indicates target lost, and glint is off.
+- Destruction and notification should be idempotent: multiple event paths must not produce duplicate drops/notices. Ensure inventory and ender-chest compasses are considered. Offline players can be refreshed on join.
+- If a registered coordinate no longer contains LODESTONE (external replacement, WorldEdit, rollback, etc.), it is not an active target. Stale registry entries should be cleaned safely when discovered. Chunk unloading alone must not unregister a valid lodestone.
+
+4. Death and life preservation
+------------------------------
+All death effects must respect configuration toggles. Default intent is two starting lives, configurable inventory/ender chest/XP/bed-spawn clearing, and optional RTP.
+
+First death / Life 1 loss:
+- Clear ordinary inventory drops when inventory wipe is enabled and clear XP when enabled.
+- Preserve only one tagged Hardcore Compass if the player had one in their carried inventory. Do not preserve ordinary compasses or duplicate compasses; preserve the existing bound compass and its target metadata.
+- Enable keep-inventory only as needed to ensure the selected compass is retained without accidentally retaining other inventory. Verify Bukkit/Paper PlayerDeathEvent item semantics, including drops and items-to-keep, so the result is truly compass-only.
+- Apply configured ender-chest clearing and bed-spawn clearing.
+- If RTP enabled, choose a safe destination in the configured annulus around the death position. Default minimum radius 10,000 and maximum 30,000 blocks. Respect world border margin, safe-surface checks, avoid-water/lava/void settings, search radius, attempt count, and spawn-history separation where configured. If no safe point is found, use the documented fallback or report failure without unsafe teleport.
+
+Second/final death / Life 2+ loss:
+- Clear the entire inventory, including any Hardcore Compass; no compass preservation on this death.
+- Apply configured XP, ender-chest, and bed-spawn clearing.
+- Apply RTP when enabled. Spectator/death handling should follow the server's Hardcore configuration; do not claim automatic spectator mode unless implemented and tested.
+- Death count/lives and preservation flags must persist across restart. A compass must not be preserved repeatedly after the one allowed first-death preservation.
+
+5. Recipes and configuration
+----------------------------
+Both custom recipes are independently configurable in `config.yml`:
+- Enable/disable toggles for compass and lodestone recipes.
+- Shaped recipe patterns with one to three rows and one to three columns; ingredient symbols map to Bukkit Material names.
+- Invalid shapes/materials should disable only that recipe, log a clear diagnostic, and allow plugin startup to continue.
+- Recipe outputs must carry the correct custom item PDC, name, lore, and initial compass state.
+- Default recipes are examples and must remain editable; do not hard-code ingredients in behavior.
+
+Relevant settings include starting lives; death/inventory/XP/ender-chest/bed-spawn penalties; RTP enablement and min/max radius, attempts, border margin, hazard avoidance/search radius, spawn-history limits; starter items; compass preservation policy; lodestone break protection; custom-block requirement; and recipe configuration. Actual key names/defaults must match config.yml and ConfigManager.
+
+6. Localization and messaging
+-----------------------------
+Support English `en` and Spanish `es` strings for item names/lore, binding/rebinding, rejection of vanilla lodestones, target destruction, denied breaking, death notices, and relevant command/errors. Preserve placeholders such as coordinates, labels, lives, and other documented tokens. Missing translations should fall back consistently to English. Destruction notices must avoid coordinates and breaker names.
+
+7. Persistence, lifecycle, and compatibility rules
+---------------------------------------------------
+- Player lives, death counts, compass-preservation state, selected language, and used RTP spawns persist through the player data store.
+- Hardcore Lodestone registry persists independently of chunks/world unload and survives server restarts. On world deletion or invalid location, stale entries should be handled safely.
+- On join, refresh tagged compasses against registry state: active target => tracked with bound lore/glint; missing/replaced target => lost lore/no glint; no target => unbound lore/no glint.
+- On plugin reload/restart, recipes and configuration reload without duplicating recipes or clearing valid registry data.
+- Respect plugin permissions and operator/admin behavior for commands and protected lodestones.
+- No interaction should allow a vanilla event to overwrite a Hardcore Compass after the plugin has applied custom target, lore, name, PDC, or glint.
+
+8. Acceptance tests for review
+------------------------------
+1. Craft/give a marked Hardcore Lodestone, place it, restart the server, and confirm registry lookup still recognizes the exact world UUID and coordinates.
+2. Place a plain vanilla lodestone (including one with a forged similar name); a Hardcore Compass must refuse it and remain unchanged. Ordinary compass vanilla behavior is unaffected.
+3. Place a custom Hardcore Lodestone and bind a tagged Hardcore Compass. Confirm CompassMeta target, PDC, label lore, bound status lore, tracked flag, glint, sound, and message update after interaction and remain correct after relog/restart.
+4. Repeat with off-hand interaction and verify no double-processing or unintended off-hand mutation.
+5. Rename a custom lodestone in an anvil, place it, bind to it, and verify the exact custom label survives break/drop/re-place and appears in compass lore.
+6. Attempt placement inside/outside the configured minimum separation; verify deterministic boundary, world scope, no item loss on rejection, and configuration toggle behavior.
+7. Break under each protection mode as owner, non-owner, and admin. Verify denial or one custom drop, registry removal, and tracker notification without coordinates/breaker identity.
+8. Test Creeper/entity explosion, TNT/block explosion, beds and respawn anchors in applicable dimensions. Verify exactly one custom drop per affected registered lodestone and no duplicate drops.
+9. Verify all online trackers (inventory and ender chest) turn glint off and show lost lore immediately; on join, offline trackers refresh correctly.
+10. Verify first death preserves only the carried tagged compass once; second/final death loses it. Test config toggles, XP, ender chest, bed spawn, life persistence, RTP annulus and safe/fallback behavior.
+11. Test English and Spanish for all item states and messages; verify missing translation fallback.
+12. Test each recipe independently enabled/disabled and malformed recipe settings; plugin should start and log useful errors.
+
+Implementation verification note
+--------------------------------
+This specification intentionally includes desired requirements that may not yet exist in the repository, notably minimum-separation enforcement and some lifecycle/edge-case guarantees. Review the code and mark each as implemented, partially implemented, or not implemented before treating this file as an accurate statement of shipped behavior.
