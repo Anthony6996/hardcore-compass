@@ -6,7 +6,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
-import java.util.UUID;
+import java.util.*;
 
 /** UUID-keyed persistent player data, serialized using an atomic replace. */
 public final class PlayerData {
@@ -28,6 +28,8 @@ public final class PlayerData {
     public void setLanguage(UUID id, String language) { data.set(path(id) + ".language", language); }
     public boolean exists(UUID id) { return data.contains(path(id) + ".lives"); }
     public void reset(UUID id) { data.set(path(id), null); }
+    public boolean isSpawnUsed(UUID id, String coordinate) { return data.getStringList(path(id)+".usedSpawns").contains(coordinate); }
+    public void addUsedSpawn(UUID id, String coordinate) { List<String> points=data.getStringList(path(id)+".usedSpawns"); if(!points.contains(coordinate)){points.add(coordinate);data.set(path(id)+".usedSpawns",points);} }
     public void save() {
         File temp = new File(file.getParentFile(), "players.yml.tmp");
         try {

@@ -1,5 +1,5 @@
 # HardcoreCompass defaults for Paper/Purpur 1.21.1, Java 21
-config-version: 3
+config-version: 4
 lives:
   starting: 2
   debug-info: true
@@ -25,61 +25,61 @@ starter:
   compass: true
 recipe:
   enabled: true
-  shape:
-    - RRR
-    - RCR
-    - RRR
-  ingredients:
-    R: REDSTONE
-    C: COMPASS
+  shape: [" R ", "RCR", " R "]
+  ingredients: {R: REDSTONE, C: COMPASS}
 messages:
   language: en
-  compass-name: '&6Hardcore Compass'
-  compass-name-lodestone: '&6Hardcore Lodestone'
-  compass-bound: '&aCompass linked to lodestone.'
-  compass-bound-lore: '&7Currently tracking: {x}, {y}, {z}'
-  compass-unbound: '&7Right-click a {lodestone_name} to start tracking'
-  compass-unbound-status: '&7Tracking lost. Right-click a {lodestone_name} to re-link.'
-  lodestone-name: 'lodestone'
-  lodestone-lore: '&7Place this block to anchor your compass tracking'
-  compass-lore: '&7Right-click a lodestone to start tracking'
-  compass-lost: '&eYour tracked lodestone was broken. Right-click another to re-link.'
-  give-usage: '&eUsage: /hcompass give <player> [compass|lodestone|all]'
-  give-success: '&aGave {item} to {player}.'
-  player-not-found: '&cThat player is not online.'
-  lang-usage: '&eUsage: /hcompass lang <es|en>'
-  lang-set: '&aLanguage changed and saved.'
-  lang-current-default: '&eYour language follows the server default.'
+  rtp-no-unique: '&cCould not find an unused safe respawn location. No teleport was made.'
+  radius-usage: '&eUsage: /hcompass radius <min> <max>'
+  radius-set: '&aRTP radius updated: {min} to {max} blocks.'
+  no-permission: '&cNo permission.'
+  help-admin: |-
+    &6HardcoreCompass admin commands:
+    &e/hcompass give <player> [compass|lodestone|all] &7Give tagged gear.
+    &e/hcompass reset <player> &7Reset lives and death history.
+    &e/hcompass radius <min> <max> &7Set random respawn radius in blocks.
+    &e/hcompass reload &7Reload configuration and recipe.
+    &e/hcompass lang <en|es> &7Set your language.
+    &e/hcompass help &7Show this menu.
+  help-player: |-
+    &6HardcoreCompass commands:
+    &e/hcompass lang <en|es> &7Change your language.
+    &e/hcompass help &7Show this menu.
   en:
-    compass-name: '&6Hardcore Compass'
-    compass-name-lodestone: '&6Hardcore Lodestone'
-    compass-bound: '&aCompass linked to lodestone.'
-    compass-bound-lore: '&7Currently tracking: {x}, {y}, {z}'
-    compass-unbound: '&7Right-click a {lodestone_name} to start tracking'
-    compass-unbound-status: '&7Tracking lost. Right-click a {lodestone_name} to re-link.'
-    lodestone-name: 'lodestone'
-    lodestone-lore: '&7Place this block to anchor your compass tracking'
-    compass-lost: '&eYour tracked lodestone was broken. Right-click another to re-link.'
-    compass-lore: '&7Right-click a lodestone to start tracking'
-    give-usage: '&eUsage: /hcompass give <player> [compass|lodestone|all]'
-    give-success: '&aGave {item} to {player}.'
-    player-not-found: '&cThat player is not online.'
-    lang-usage: '&eUsage: /hcompass lang <es|en>'
-    lang-set: '&aLanguage changed and saved.'
+    radius-usage: '&eUsage: /hcompass radius <min> <max>'
+    radius-set: '&aRTP radius updated: {min} to {max} blocks.'
+    rtp-no-unique: '&cCould not find an unused safe respawn location. No teleport was made.'
+    no-permission: '&cNo permission.'
+    help-admin: |-
+      &6HardcoreCompass admin commands:
+      &e/hcompass give <player> [compass|lodestone|all] &7Give tagged gear.
+      &e/hcompass reset <player> &7Reset lives and death history.
+      &e/hcompass radius <min> <max> &7Set random respawn radius in blocks.
+      &e/hcompass reload &7Reload configuration and recipe.
+      &e/hcompass lang <en|es> &7Set your language.
+      &e/hcompass help &7Show this menu.
+    help-player: |-
+      &6HardcoreCompass commands:
+      &e/hcompass lang <en|es> &7Change your language.
+      &e/hcompass help &7Show this menu.
   es:
-    compass-name: '&6Brújula Hardcore'
-    compass-name-lodestone: '&6Magnetita Hardcore'
-    compass-bound: '&aBrújula vinculada a la magnetita.'
-    compass-bound-lore: '&7Rastreando actualmente: {x}, {y}, {z}'
-    compass-unbound: '&7Haz clic derecho en una {lodestone_name} para empezar a rastrear'
-    compass-unbound-status: '&7Rastreo perdido. Haz clic derecho en una {lodestone_name} para volver a vincular.'
-    lodestone-name: 'magnetita'
-    lodestone-lore: '&7Coloca este bloque para fijar el rastreo de tu brújula'
-    compass-lost: '&eSe rompió la magnetita rastreada. Haz clic derecho en otra para volver a vincular.'
-    compass-lore: '&7Haz clic derecho en una magnetita para empezar a rastrear'
-    give-usage: '&eUso: /hcompass give <jugador> [compass|lodestone|all]'
-    give-success: '&aSe entregó {item} a {player}.'
-    give-success-all: '&aSe entregó todo el equipo a {player}.'
-    player-not-found: '&cEse jugador no está conectado.'
-    lang-usage: '&eUso: /hcompass lang <es|en>'
-    lang-set: '&aIdioma cambiado y guardado.'
+    radius-usage: '&eUso: /hcompass radius <min> <max>'
+    radius-set: '&aRadio RTP actualizado: de {min} a {max} bloques.'
+    rtp-no-unique: '&cNo se encontró un lugar seguro y no utilizado. No se realizó el teletransporte.'
+    no-permission: '&cNo tienes permiso.'
+    help-admin: |-
+      &6Comandos de administración de HardcoreCompass:
+      &e/hcompass give <jugador> [compass|lodestone|all] &7Entrega equipo etiquetado.
+      &e/hcompass reset <jugador> &7Reinicia vidas e historial.
+      &e/hcompass radius <mín> <máx> &7Define el radio aleatorio de reaparición.
+      &e/hcompass reload &7Recarga configuración y receta.
+      &e/hcompass lang <en|es> &7Cambia tu idioma.
+      &e/hcompass help &7Muestra este menú.
+    help-player: |-
+      &6Comandos de HardcoreCompass:
+      &e/hcompass lang <en|es> &7Cambia tu idioma.
+      &e/hcompass help &7Muestra este menú.
+    radius-set: '&aRadio RTP actualizado: de {min} a {max} bloques.'
+    radius-usage: '&eUso: /hcompass radius <mín> <máx>'
+    rtp-no-unique: '&cNo se encontró un lugar seguro y no utilizado.'
+    no-permission: '&cNo tienes permiso.'
