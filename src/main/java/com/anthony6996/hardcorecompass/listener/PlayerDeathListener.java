@@ -35,9 +35,10 @@ public final class PlayerDeathListener implements Listener {
 
         int remaining = lives.recordDeath(player.getUniqueId());
         if (config.wipeInventory()) event.getDrops().clear();
-        // Do not drop the preserved compass at the death location. Respawn listener restores it at destination.
-        if (preserve) event.getItemsToKeep().add(preservedCompass.clone());
-
+        if (preserve) {
+            event.getItemsToKeep().add(preservedCompass.clone());
+            event.setKeepInventory(true);
+        }
         event.setDroppedExp(config.clearXp() ? 0 : event.getDroppedExp());
         if (config.clearEnderChest()) player.getEnderChest().clear();
         if (config.clearXp()) {
