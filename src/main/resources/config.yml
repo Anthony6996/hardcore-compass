@@ -1,4 +1,5 @@
 # HardcoreCompass defaults for Paper/Purpur 1.21.1, Java 21
+config-version: 2
 lives:
   starting: 2
   debug-info: true
@@ -7,34 +8,39 @@ teleport:
   min-radius: 10000
   max-radius: 30000
   attempts: 80
-  min-y: -64
-  max-y: 320
   border-margin: 16
-  safety-radius: 8
   avoid-water: true
   avoid-lava: true
   avoid-void: true
   search-radius: 8
+penalties:
+  wipe-inventory: true
+  clear-ender-chest: true
+  clear-xp: true
+  clear-bed-spawn: true
+  enable-rtp: true
 starter:
   enabled: true
   lodestone: true
   compass: true
 messages:
-  language: en # en or es
+  language: en
   first-join: '&aWelcome! You have {lives} lives. Your compass is ready.'
-  death-one: '&eThat was close! {lives} life left. You have been moved somewhere new.'
+  death-one: '&eThat was close! {lives} life left. Your tagged compass survives this first death.'
   death-final: '&cNo lives remain. Your inventory was cleared and you have been relocated.'
   no-world: '&cConfigured world not found; safe relocation was skipped.'
   lives-self: '&eLives remaining: {lives}'
   lives-other: '&e{player} has {lives} lives.'
   set-lives: '&aSet {player} to {lives} lives.'
+  reset: '&aReset {player} to starting lives and cleared death/compass history.'
+  info: '&e{player}: lives={lives}, deaths={deaths}, compass previously preserved={compass}'
   reloaded: '&aHardcoreCompass configuration reloaded.'
-  usage: '&e/hcompass lives [player] | setlives <player> <amount> | reload'
+  usage: '&e/hcompass <reload|setlives|getlives|reset|info>'
   en:
     first-join: '&aWelcome! You have {lives} lives. Your compass is ready.'
-    death-one: '&eThat was close! {lives} life left. You have been moved somewhere new.'
+    death-one: '&eThat was close! {lives} life left. Your tagged compass survives this first death.'
     death-final: '&cNo lives remain. Your inventory was cleared and you have been relocated.'
   es:
     first-join: '&a¡Bienvenido! Tienes {lives} vidas. Tu brújula está lista.'
-    death-one: '&e¡Por poco! Te queda {lives} vida. Te hemos llevado a otro lugar.'
+    death-one: '&e¡Por poco! Te queda {lives} vida. Tu brújula sobrevive a esta primera muerte.'
     death-final: '&cNo te quedan vidas. Tu inventario se limpió y te hemos trasladado.'
