@@ -1,264 +1,182 @@
-# Compass behaviour review — custom items and lodestone policy
+# HardcoreCompass — review against EXPECTED_BEHAVIOUR.txt
 
-Reviewed against the current `main` source, including `CompassManager`, `CompassInteractionListener`, and `PlayerDeathListener`.
+Reviewed against `EXPECTED_BEHAVIOUR.txt` and the latest `main` implementation.
 
-## Current implementation
+## Status summary
 
-The plugin already uses a `NamespacedKey` and `PersistentDataContainer` BYTE marker to identify plugin compasses:
+| Area | Status | Notes |
+|---|---|---|
+| Separate Hardcore Compass / Lodestone identity | Implemented | Separate PDC keys and type checks exist. |
+| Vanilla compass rejection | Implemented | `isHardcoreCompass` gates binding. |
+| Hardcore-only lodestone binding | Partially implemented | Placement marking exists; persistent registry lifecycle needs verification. |
+| Custom item names and lore | Implemented | Localised names and status lore are present. |
+| Configurable separate recipes | Implemented | Compass and lodestone recipes use separate keys and configuration sections. |
+| Safe recipe validation | Implemented | Invalid recipes log an error and allow startup to continue. |
+| Shared lodestones | Implemented | Each compass stores its own target; one binding does not overwrite another. |
+| Break protection modes | Implemented | `none`, `owner-only`, and `admin-only` are supported. |
+| First-death-only compass preservation | Implemented, needs semantic testing | Death count gates preservation; inventory-retention semantics require testing. |
+| Persistent lodestone registry | Partially implemented | Must be verified across restart, chunk unload, world reload, and block replacement. |
+| Minimum lodestone separation | Not implemented | `EXPECTED_BEHAVIOUR.txt` explicitly identifies this as outstanding. |
+| Explosion handling | Not fully implemented | Creeper, TNT, bed, and respawn-anchor destruction paths need explicit handling and tests. |
+| Anvil labels | Partially implemented | Recent commits add label support; end-to-end persistence and compass lore need testing. |
+| Compass glint override | Partially implemented | Recent commit adds glint override; active/lost/unbound transitions need testing. |
+| Offline compass refresh | Implemented | Join refresh checks whether the compass target is still a registered Hardcore Lodestone. |
+| RTP and fallbacks | Implemented | Safe-surface search, retries, border clamping, and spawn fallback exist. |
 
-```java
-key = new NamespacedKey(plugin, "hardcore_compass");
-meta.getPersistentDataContainer().set(key, PersistentDataType.BYTE, (byte) 1);
-```
+## Core gameplay loop
 
-`CompassManager.isTagged(ItemStack)` currently accepts only a `Material.COMPASS` with that marker. This correctly prevents ordinary compasses from being treated as Hardcore Compasses.
+The intended loop is now correctly represented:
 
-However, the same key is used conceptually for both item types, and `createLodestone()` tags a lodestone item with the same key. The interaction listener currently binds a tagged compass when right-clicking **any lodestone block**, including a normal vanilla lodestone:
+1. Player receives or crafts a Hardcore Compass and Hardcore Lodestone.
+2. Player places the Hardcore Lodestone and binds the compass to it.
+3. On the first death, one carried Hardcore Compass is preserved.
+4. On the second and later deaths, no Hardcore Compass is preserved.
+5. Every death can trigger RTP within the configured radius.
+6. Breaking or destroying the target lodestone untracks affected compasses.
 
-```java
-if (event.getClickedBlock().getType() != Material.LODESTONE) return;
-...
-compasses.bind(held, player, block.getLocation());
-```
-
-That means a vanilla lodestone can currently become the target of a Hardcore Compass. If the intended design is that only crafted or admin-given Hardcore Lodestones may be used, this needs a block-level ownership/type check.
-
-## Required behaviour
-
-1. Hardcore Compasses and Hardcore Lodestones must be clearly distinguishable from vanilla items.
-2. Both should have configurable crafting recipes, names, and descriptions.
-3. The crafting-table result preview should show the custom name and lore.
-4. Only Hardcore Lodestone blocks should be valid binding targets, if that is the intended server rule.
-5. Multiple Hardcore Compasses should be able to bind to the same Hardcore Lodestone.
-6. One player binding a compass must not overwrite or interfere with another player’s compass.
-7. Breaking a Hardcore Lodestone should untrack every compass bound to that exact block.
-8. Crafting a new Hardcore Compass must not reset a player’s death count.
-9. First-death compass preservation should remain a server-wide admin setting.
-
-## Recommended data model
-
-Use two separate item-type markers rather than one shared BYTE value:
-
-```java
-private final NamespacedKey compassKey;
-private final NamespacedKey lodestoneKey;
-
-compassKey = new NamespacedKey(plugin, "hardcore_compass");
-lodestoneKey = new NamespacedKey(plugin, "hardcore_lodestone");
-```
-
-Item creation:
-
-```java
-meta.getPersistentDataContainer().set(compassKey, PersistentDataType.BYTE, (byte) 1);
-```
-
-```java
-meta.getPersistentDataContainer().set(lodestoneKey, PersistentDataType.BYTE, (byte) 1);
-```
-
-Then add separate checks:
-
-```java
-public boolean isHardcoreCompass(ItemStack item) {
-    return item != null
-            && item.getType() == Material.COMPASS
-            && item.hasItemMeta()
-            && item.getItemMeta().getPersistentDataContainer()
-                .has(compassKey, PersistentDataType.BYTE);
-}
-
-public boolean isHardcoreLodestone(ItemStack item) {
-    return item != null
-            && item.getType() == Material.LODESTONE
-            && item.hasItemMeta()
-            && item.getItemMeta().getPersistentDataContainer()
-                .has(lodestoneKey, PersistentDataType.BYTE);
-}
-```
-
-Replace every current call to `isTagged(item)` with the appropriate type-specific check.
-
-## Marking placed lodestones
-
-An ItemStack’s PersistentDataContainer is lost when the item is placed as a block. To preserve Hardcore Lodestone identity after placement, store a marker on the block’s `TileState`:
-
-```java
-@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-public void onPlace(BlockPlaceEvent event) {
-    ItemStack item = event.getItemInHand();
-    if (!compasses.isHardcoreLodestone(item)) return;
-
-    Block block = event.getBlockPlaced();
-    if (!(block.getState() instanceof TileState state)) return;
-
-    PersistentDataContainer pdc = state.getPersistentDataContainer();
-    pdc.set(compasses.lodestoneBlockKey(), PersistentDataType.BYTE, (byte) 1);
-    state.update();
-}
-```
-
-Expose the block marker key from `CompassManager`:
-
-```java
-public NamespacedKey lodestoneBlockKey() {
-    return lodestoneBlockKey;
-}
-```
-
-Then change the interaction listener to reject ordinary lodestone blocks:
-
-```java
-if (!(block.getState() instanceof TileState state)) return;
-
-boolean hardcore = state.getPersistentDataContainer()
-        .has(compasses.lodestoneBlockKey(), PersistentDataType.BYTE);
-
-if (!hardcore) return;
-```
-
-This ensures that only a placed Hardcore Lodestone can be bound to a Hardcore Compass.
-
-## Crafting recipes
-
-The current `registerRecipe()` only registers a Hardcore Compass recipe. Add a second recipe for the Hardcore Lodestone.
-
-Recommended configuration:
+The default configuration matches this intent:
 
 ```yaml
-recipe:
-  compass:
-    enabled: true
-    shape:
-      - " R "
-      - "RCR"
-      - " R "
-    ingredients:
-      R: REDSTONE
-      C: COMPASS
-  lodestone:
-    enabled: true
-    shape:
-      - "III"
-      - "ILI"
-      - "III"
-    ingredients:
-      I: IRON_INGOT
-      L: LODESTONE
-```
+lives:
+  starting: 2
 
-Use separate recipe keys:
-
-```java
-private final NamespacedKey compassRecipeKey;
-private final NamespacedKey lodestoneRecipeKey;
-
-compassRecipeKey = new NamespacedKey(plugin, "hardcore_compass_recipe");
-lodestoneRecipeKey = new NamespacedKey(plugin, "hardcore_lodestone_recipe");
-```
-
-Register the compass recipe with `createCompass(null, null)` and the lodestone recipe with `createLodestone(null)`.
-
-In `CompassCraftListener`, identify which recipe produced the preview result and replace it with the corresponding tagged item:
-
-```java
-if (compasses.isCompassRecipe(event.getRecipe())) {
-    event.getInventory().setResult(compasses.createCompass(null, player));
-} else if (compasses.isLodestoneRecipe(event.getRecipe())) {
-    event.getInventory().setResult(compasses.createLodestone(player));
-}
-```
-
-Because the crafting preview has a player context through `PrepareItemCraftEvent`, the custom name and lore should be visible before the player takes the item. If Paper does not reliably provide the crafting player in every event path, fall back to the server default language rather than showing vanilla item text.
-
-## Shared lodestones
-
-Do **not** store a single owner or target on the lodestone itself. The compass already stores its own target in `CompassMeta`, so multiple compasses can point to the same lodestone without conflicting.
-
-The current `markTargetLost(World, Location)` approach is correct in principle: it scans compasses and untracks every one whose stored world and block coordinates match the broken lodestone.
-
-Keep this model:
-
-```text
-Hardcore Lodestone block
-        ↑
-        ├── Player A compass
-        ├── Player A second compass
-        └── Player B compass
-```
-
-Breaking the lodestone should untrack all three. It should not delete the compasses or change their ownership.
-
-## Lodestone break protection
-
-Add a configurable policy:
-
-```yaml
-lodestone:
-  break-protection: none # none | owner-only | admin-only
-  untrack-compasses-on-break: true
-```
-
-Implementation:
-
-- `none`: anyone may break the lodestone; all bound compasses become untracked.
-- `owner-only`: store the placer UUID in the lodestone block’s `TileState` PDC and cancel `BlockBreakEvent` for other non-admin players.
-- `admin-only`: cancel the break event unless the player has `hardcorecompass.admin`.
-
-For the intended hardcore experience, `none` is the recommended default. A player’s base lodestone remains vulnerable, which preserves risk and makes compass recovery meaningful.
-
-## Offline compass handling
-
-The current `markTargetLost()` only scans online players’ inventories and ender chests. That means an offline player’s compass will remain visually tracked until they next join.
-
-Two acceptable approaches:
-
-1. **Simple and recommended initially:** leave offline compasses untouched, but refresh their tracked state and lore on join by comparing their stored lodestone target with a registry of broken/missing lodestone locations.
-2. **More robust:** maintain a persistent registry of lodestone locations and broken state, then resolve compass state on join, death, or compass use.
-
-At minimum, document that offline compasses may briefly continue displaying as tracked until the player rejoins.
-
-## Death count and preservation
-
-Crafting or obtaining a new Hardcore Compass must **not** reset the player’s death count.
-
-The current death logic is broadly correct:
-
-```java
-int deathCount = lives.deaths(player.getUniqueId()) + 1;
-boolean preserve = deathCount == 1
-        && preservedCompass != null
-        && lives.markCompassPreserved(player.getUniqueId());
-```
-
-Keep death count attached to the player UUID, not to an individual compass. A newly crafted compass is only a replacement navigation item; it must not restore first-death preservation.
-
-Make the policy explicit and admin-controlled:
-
-```yaml
 compass:
   preserve-on-first-death: true
   reset-death-count-on-new-compass: false
+
+penalties:
+  wipe-inventory: true
+  clear-ender-chest: true
+  clear-xp: true
+  clear-bed-spawn: true
+  enable-rtp: true
 ```
 
-Commands:
+## High-priority gap: compass-only preservation
+
+The current first-death logic uses:
+
+```java
+event.getItemsToKeep().add(preservedCompass.clone());
+event.setKeepInventory(true);
+```
+
+`EXPECTED_BEHAVIOUR.txt` requires that only the selected Hardcore Compass is retained, not the player’s whole inventory. `setKeepInventory(true)` may retain all inventory depending on Paper’s `PlayerDeathEvent` semantics.
+
+Recommended approach:
+
+1. Do not enable global keep-inventory.
+2. Clear `event.getDrops()` when inventory wiping is enabled.
+3. Add exactly one cloned Hardcore Compass to `event.getItemsToKeep()`.
+4. Test on the target Paper/Purpur build that no other inventory item is retained.
+5. If Paper retains the full inventory, remove non-compass items from drops or use a respawn-stage restoration approach instead.
+
+The acceptance test is:
 
 ```text
-/hcompass setpreserve <true|false>
-/hcompass setresetoncraft <true|false>
+Carry: Hardcore Compass + diamond + dirt.
+Die with inventory wipe enabled.
+Expected: only the Hardcore Compass is retained; diamond and dirt are lost.
 ```
 
-Both should require `hardcorecompass.admin`, save to `config.yml`, and apply immediately after a config reload or direct `ConfigManager` update.
+## High-priority gap: persistent lodestone registry
 
-## Testing checklist
+A placed lodestone cannot rely on item metadata or transient block metadata. The registry should be a plugin-owned persistent store keyed by:
 
-- Craft a Hardcore Compass and confirm its custom name and lore appear in the crafting result preview.
-- Craft a Hardcore Lodestone and confirm its custom name and lore appear in the crafting result preview.
-- Confirm a vanilla compass cannot bind to a Hardcore Lodestone.
-- Confirm a Hardcore Compass cannot bind to a vanilla lodestone.
-- Bind two players’ compasses to the same Hardcore Lodestone and confirm both remain independently tracked.
-- Break the shared lodestone and confirm both compasses become untracked.
-- Confirm crafting a new compass does not reset death count or restore first-death preservation.
-- Test `break-protection: none`, `owner-only`, and `admin-only`.
-- Test offline players with compasses bound to a broken lodestone, then verify their compass state after reconnecting.
-- Test `/hcompass setpreserve false`, then confirm no compass is preserved on first death.
+```text
+world UUID + block X + block Y + block Z
+```
+
+Each entry should contain:
+
+```yaml
+<world-uuid>:
+  "x,y,z":
+    owner: <player-uuid>
+    label: "base_1"
+    created: <epoch-millis>
+```
+
+Requirements:
+
+- Register only after a successful, non-cancelled `BlockPlaceEvent`.
+- Register only when the placed item has the `hardcore_lodestone` PDC marker.
+- Validate on lookup that the block is still `Material.LODESTONE`.
+- Remove or ignore stale entries when the block has been replaced or removed.
+- Persist across restart, chunk unload, and world reload.
+- Use world UUID, not world name alone, to distinguish dimensions.
+
+## High-priority gap: minimum separation
+
+Add configurable separation enforcement:
+
+```yaml
+lodestone:
+  min-separation-enabled: true
+  min-separation: 750
+```
+
+Recommended rules:
+
+- Use horizontal X/Z Euclidean distance.
+- Compare only against lodestones in the same world.
+- Reject distances strictly below 750 blocks.
+- Accept exactly 750 blocks or greater.
+- Cancel `BlockPlaceEvent` before the item is consumed.
+- Send a localised rejection message including the required distance.
+
+## High-priority gap: explosions
+
+Handle destruction consistently across:
+
+- `BlockBreakEvent`
+- `EntityExplodeEvent`
+- `BlockExplodeEvent`
+- Bed and respawn-anchor explosions where Paper exposes them
+
+For every registered Hardcore Lodestone in the affected block list:
+
+1. Remove it from the registry.
+2. Suppress the normal lodestone drop.
+3. Drop exactly one tagged Hardcore Lodestone, preserving its label and PDC marker.
+4. Notify online compass holders whose target matches the destroyed location.
+5. Set affected compasses to `tracked=false`, apply lost lore, and disable glint.
+6. Ensure idempotency so duplicate event paths do not create duplicate drops or notifications.
+
+Destruction notices must not include coordinates or the breaker’s identity.
+
+## Anvil labels and compass glint
+
+Anvil renaming should preserve the `hardcore_lodestone` PDC marker. When placed, the custom name should become the registered location label.
+
+The compass should store the target label, recommended PDC key:
+
+```text
+target_label
+```
+
+Compass glint should use Paper’s enchantment-glint override:
+
+- Enabled while tracking an active registered Hardcore Lodestone.
+- Disabled when unbound.
+- Disabled when the target is destroyed, replaced, or unregistered.
+
+Do not rely on an actual enchantment to create the glint.
+
+## Acceptance tests
+
+1. Give both custom items using `/hcompass give`, place the lodestone, restart, and confirm the exact world UUID and coordinates remain registered.
+2. Place a vanilla lodestone, including one renamed to look custom; confirm a Hardcore Compass refuses it and remains unchanged.
+3. Bind a Hardcore Compass, then relog and restart; confirm target, PDC, label, lore, tracked state, and glint persist.
+4. Test main-hand and off-hand interaction; confirm no duplicate processing or off-hand mutation.
+5. Rename a lodestone in an anvil, place it, bind to it, break it, pick it up, replace it, and confirm the label survives and appears in compass lore.
+6. Test lodestone placement inside and outside the 750-block separation boundary; confirm no item loss on rejection.
+7. Test break protection as owner, non-owner, and admin under all three modes.
+8. Test creeper, TNT, bed, and respawn-anchor destruction; confirm exactly one custom drop per affected registered lodestone.
+9. Confirm all online compass holders receive the target-destroyed notice, lose glint, and show lost lore.
+10. Take a Hardcore Compass offline, destroy its lodestone, rejoin, and confirm the compass refreshes to lost state.
+11. Die once with a Hardcore Compass and other items; confirm only the compass is preserved.
+12. Die a second time; confirm no compass preservation.
+13. Test RTP in normal, ocean, lava, void-edge, border, and no-safe-surface scenarios.
+14. Test English and Spanish messages, item lore, and fallback behaviour.
+15. Enable/disable each recipe independently and submit malformed recipe configurations; confirm useful logs and continued startup.
