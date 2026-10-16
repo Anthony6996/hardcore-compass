@@ -1,5 +1,5 @@
 # HardcoreCompass messages and settings. Existing installations migrate automatically.
-config-version: 5
+config-version: 6
 lives: {starting: 2, debug-info: true}
 world: world
 teleport:
@@ -16,7 +16,7 @@ teleport:
 penalties: {wipe-inventory: true, clear-ender-chest: true, clear-xp: true, clear-bed-spawn: true, enable-rtp: true}
 starter: {enabled: true, lodestone: true, compass: true}
 compass: {preserve-on-first-death: true, reset-death-count-on-new-compass: false}
-lodestone: {break-protection: none, untrack-compasses-on-break: true, require-custom-block: true}
+lodestone: {break-protection: none, untrack-compasses-on-break: true, require-custom-block: true, min-separation-distance: 750}
 recipe:
   compass: {enabled: true, shape: [" R ", "RCR", " R "], ingredients: {R: REDSTONE, C: COMPASS}}
   lodestone: {enabled: true, shape: ["III", "ILI", "III"], ingredients: {I: IRON_INGOT, L: LODESTONE}}
@@ -31,6 +31,7 @@ messages:
     hardcore-lodestone-only: '&cYou can only bind a Hardcore Compass to a Hardcore Lodestone.'
     lodestone-name: '&6Hardcore Lodestone'
     lodestone-lore: '&7Use this lodestone with a Hardcore Compass to track its location.'
+    lodestone-too-close: '&cToo close to another Lodestone (minimum {distance} blocks).'
     compass-bound: '&aYour Hardcore Compass is now tracking this lodestone.'
     compass-rebound: '&aYour Hardcore Compass now tracks the new lodestone at {x}, {y}, {z}.'
     compass-target-broken: '&6[Hardcore] &cYour bound lodestone has been destroyed!'
@@ -46,6 +47,7 @@ messages:
     hardcore-lodestone-only: '&cSolo puedes vincular una brújula Hardcore a una Piedra imán Hardcore.'
     lodestone-name: '&6Piedra imán Hardcore'
     lodestone-lore: '&7Usa esta piedra imán con una Brújula Hardcore para rastrear su ubicación.'
+    lodestone-too-close: '&cDemasiado cerca de otra Piedra imán (mínimo {distance} bloques).'
     compass-bound: '&aTu brújula Hardcore ahora apunta a esta Piedra imán.'
     compass-rebound: '&aTu brújula Hardcore ahora apunta a la nueva Piedra imán en {x}, {y}, {z}.'
     compass-target-broken: '&6[Hardcore] &c¡Tu piedra imán vinculada ha sido destruida!'
