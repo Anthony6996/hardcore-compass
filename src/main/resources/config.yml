@@ -1,5 +1,5 @@
 # HardcoreCompass messages and settings. Existing installations migrate automatically.
-config-version: 6
+config-version: 7
 lives: {starting: 2, debug-info: true}
 world: world
 teleport:
@@ -15,8 +15,24 @@ teleport:
   spawn-history-limit: 10
 penalties: {wipe-inventory: true, clear-ender-chest: true, clear-xp: true, clear-bed-spawn: true, enable-rtp: true}
 starter: {enabled: true, lodestone: true, compass: true}
+book:
+  enabled: true
+  title: 'Guía del modo Hardcore'
+  author: 'Servidor Hardcore'
+  pages:
+    - |-
+      §l§6Reglas Hardcore§r
+      §0Tienes vidas limitadas. Cada decisión importa: prepara equipo, comida y refugio antes de explorar. Evita riesgos innecesarios y respeta las reglas del servidor.
+    - |-
+      §l§6Brújula Hardcore§r
+      §0La brújula sirve para rastrear una Piedra imán Hardcore vinculada. Haz clic derecho sobre una Piedra imán Hardcore para vincular la brújula. Si la vinculas a otra, cambiará el destino.
+    - |-
+      §l§6Piedra imán§r
+      §0Coloca tu Piedra imán Hardcore en un lugar seguro. La brújula vinculada te guiará hacia ella. Mantén distancia de otras piedras; si la piedra objetivo se rompe, vuelve a vincular la brújula a otra.
 compass: {preserve-on-first-death: true, reset-death-count-on-new-compass: false}
 lodestone: {break-protection: none, untrack-compasses-on-break: true, require-custom-block: true, min-separation-distance: 750}
+crafting:
+  compass-enabled: true
 recipe:
   compass: {enabled: true, shape: [" R ", "RCR", " R "], ingredients: {R: REDSTONE, C: COMPASS}}
   lodestone: {enabled: true, shape: ["III", "ILI", "III"], ingredients: {I: IRON_INGOT, L: LODESTONE}}
@@ -38,6 +54,7 @@ messages:
     compass-unbound-message: '&7Right-click a Hardcore Lodestone to bind.'
     lodestone-break-denied: '&cYou cannot break this Hardcore Lodestone.'
     no-permission: '&cNo permission.'
+    craft-disabled: '&cYou are not allowed to craft the Hardcore Compass.'
   es:
     compass-name: '&6Brújula Hardcore'
     compass-bound-lore: '&7Vinculada a la Piedra imán Hardcore en {x}, {y}, {z}. Haz clic derecho en otra para cambiar el objetivo.'
@@ -54,6 +71,7 @@ messages:
     compass-unbound-message: '&7Haz clic derecho en una Piedra imán Hardcore para vincularla.'
     lodestone-break-denied: '&cNo puedes romper esta Piedra imán Hardcore.'
     no-permission: '&cNo tienes permiso.'
+    craft-disabled: '&cNo tienes permiso para fabricar la Brújula Hardcore.'
   compass-name: '&6Hardcore Compass'
   compass-bound-lore: '&7Bound to {x}, {y}, {z}'
   lodestone-name: '&6Hardcore Lodestone'

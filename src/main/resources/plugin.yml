@@ -6,8 +6,9 @@ author: Anthony6996
 description: UUID lives, lodestone compasses, and safe random respawns.
 commands:
   hcompass:
+    aliases: [hc]
     description: HardcoreCompass administration and player information
-    usage: /hcompass help
+    usage: /hc help
 permissions:
   hardcorecompass.admin:
     description: Manage HardcoreCompass lives, items, language, and configuration
@@ -15,3 +16,6 @@ permissions:
   hardcorecompass.lives:
     description: View your own remaining lives
     default: true
+  hardcorecompass.craft:
+    description: Allows crafting the Hardcore Compass when the global toggle is enabled
+    default: op
